@@ -1,33 +1,32 @@
 ﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Lib.infrastructure.entity;
 
 namespace Model.Sys
 {
-    [Table("wp_msg")]
+    [Table("sys_msg")]
     public class MessageModel : BaseEntity
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Column("msg_id")]
-        public virtual int MsgID { get; set; }
-
         [Column("msg_title")]
+        [MaxLength(200)]
         public virtual string Title { get; set; }
 
         [Column("msg_content")]
+        [DataType(DataType.Text)]
         public virtual string MsgContent { get; set; }
-
-        [Column("msg_time")]
-        public virtual DateTime UpdateTime { get; set; }
-
+        
         [Column("msg_sender")]
-        public virtual int SenderUserID { get; set; }
+        [MaxLength(100)]
+        [Required]
+        public virtual string SenderUserID { get; set; }
 
         [Column("msg_receiver")]
-        public virtual int ReceiverUserID { get; set; }
+        [MaxLength(100)]
+        [Required]
+        public virtual string ReceiverUserID { get; set; }
 
         [Column("msg_new")]
-        public virtual string IsNew { get; set; }
+        public virtual int IsNew { get; set; }
     }
 }

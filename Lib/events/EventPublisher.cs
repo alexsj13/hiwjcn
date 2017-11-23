@@ -60,8 +60,15 @@ namespace Lib.events
                 $"无法触发事件，没有在ioc中注册{typeof(IConsumer<T>)}的实例".AddBusinessInfoLog();
                 return;
             }
-            var subscriptions = AppContext.GetAllObject<IConsumer<T>>();
-            subscriptions.ToList().ForEach(x => PublishToConsumer(x, eventMessage));
+            AppContext.Scope(x =>
+            {
+                var subscriptions = x.ResolveAll<IConsumer<T>>();
+                foreach (var sub in subscriptions)
+                {
+                    PublishToConsumer(sub, eventMessage);
+                }
+                return true;
+            });
         }
 
     }

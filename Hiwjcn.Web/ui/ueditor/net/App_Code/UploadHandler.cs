@@ -23,57 +23,61 @@ public class UploadHandler : Handler
 
     public override void Process()
     {
-        var logincontext = AppContext.GetObject<LoginStatus>();
+        AppContext.Scope(s =>
+        {
+            var logincontext = s.Resolve_<LoginStatus>();
 
-        var loginuser = logincontext.GetLoginUser(Context);
-        if (loginuser == null)
-        {
-            Result.State = "没有登陆";
-            WriteResult();
-            return;
-        }
+            var loginuser = logincontext.GetLoginUser(Context);
+            if (loginuser == null)
+            {
+                Result.State = "没有登陆";
+                WriteResult();
+                return true;
+            }
 
-        #region 上传到本地
-        string SavePath = ServerHelper.GetMapPath(Context, "~/static/upload/editor/");
-        var uploader = new FileUpload();
-        uploader.AllowFileType = new string[] { ".gif", ".png", ".jpg", ".jpeg" };
-        uploader.MaxSize = Com.MbToB(1);
-        var filelist = Context.Request.Files.AllKeys.Select(x => Context.Request.Files[x]).ToList();
-        if (!ValidateHelper.IsPlumpList(filelist))
-        {
-            Result.State = "获取不到文件";
-            WriteResult();
-            return;
-        }
-        var model = uploader.UploadSingleFile(filelist[0], SavePath);
-        if (!model.SuccessUpload)
-        {
-            Result.State = model.Info;
-            WriteResult();
-            return;
-        }
-        if (!File.Exists(model.FilePath))
-        {
-            Result.State = "本地文件丢失";
-            WriteResult();
-            return;
-        }
-        #endregion
-        string file_url = string.Empty;
-        string file_name = string.Empty;
-        var upfileservice = AppContext.GetObject<IUpFileService>();
-        var res = upfileservice.UploadFileAfterCheckRepeat(new FileInfo(model.FilePath), loginuser.IID, ref file_url, ref file_name);
-        if (ValidateHelper.IsPlumpString(res))
-        {
-            Result.State = res;
-            WriteResult();
-            return;
-        }
+            #region 上传到本地
+            string SavePath = ServerHelper.GetMapPath(Context, "~/static/upload/editor/");
+            var uploader = new FileUpload();
+            uploader.AllowFileType = new string[] { ".gif", ".png", ".jpg", ".jpeg" };
+            uploader.MaxSize = Com.MbToB(1);
+            var filelist = Context.Request.Files.AllKeys.Select(x => Context.Request.Files[x]).ToList();
+            if (!ValidateHelper.IsPlumpList(filelist))
+            {
+                Result.State = "获取不到文件";
+                WriteResult();
+                return true;
+            }
+            var model = uploader.UploadSingleFile(filelist[0], SavePath);
+            if (!model.SuccessUpload)
+            {
+                Result.State = model.Info;
+                WriteResult();
+                return true;
+            }
+            if (!File.Exists(model.FilePath))
+            {
+                Result.State = "本地文件丢失";
+                WriteResult();
+                return true;
+            }
+            #endregion
+            string file_url = string.Empty;
+            string file_name = string.Empty;
+            var upfileservice = s.Resolve_<IUpFileService>();
+            var res = upfileservice.UploadFileAfterCheckRepeat(new FileInfo(model.FilePath), loginuser.UserID, ref file_url, ref file_name);
+            if (ValidateHelper.IsPlumpString(res))
+            {
+                Result.State = res;
+                WriteResult();
+                return true;
+            }
 
-        Result.Url = file_url;
-        Result.OriginFileName = file_name;
-        Result.State = "SUCCESS";
-        WriteResult();
+            Result.Url = file_url;
+            Result.OriginFileName = file_name;
+            Result.State = "SUCCESS";
+            WriteResult();
+            return true;
+        });
     }
 
     private void WriteResult()

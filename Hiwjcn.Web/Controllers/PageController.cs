@@ -11,21 +11,28 @@ using System.Web.Mvc;
 using WebApp.Models.Page;
 using WebCore.MvcLib.Controller;
 using Lib.mvc.attr;
+using Lib.cache;
+using Hiwjcn.Core;
 
 namespace Hiwjcn.Web.Controllers
 {
-    public class PageController : WebCore.MvcLib.Controller.UserBaseController
+    public class PageController : BaseController
     {
-        private IPageService _IPageService { get; set; }
-        private ILinkService _ILinkService { get; set; }
+        private readonly IPageService _IPageService;
+        private readonly ILinkService _ILinkService;
+        private readonly ICacheProvider _cache;
 
         /// <summary>
         /// 构造器
         /// </summary>
-        public PageController(IPageService page, ILinkService link)
+        public PageController(
+            IPageService page,
+            ILinkService link,
+            ICacheProvider _cache)
         {
             this._IPageService = page;
             this._ILinkService = link;
+            this._cache = _cache;
         }
 
         /// <summary>
@@ -33,6 +40,7 @@ namespace Hiwjcn.Web.Controllers
         /// </summary>
         /// <returns></returns>
         [HtmlCache(3)]
+        [RequestLog]
         [LoadNavigation]
         public ActionResult Home()
         {
@@ -40,7 +48,10 @@ namespace Hiwjcn.Web.Controllers
             {
                 var model = new HomeModel();
 
-                var list = _ILinkService.GetTopLinks("home_link", 100);
+                var type = "home_link";
+                var cache_key = CacheKeyManager.SysLinkListKey(type);
+
+                var list = _ILinkService.GetTopLinks(type, 100);
                 if (ValidateHelper.IsPlumpList(list))
                 {
                     list = list.OrderBy(x => x.OrderNum).ToList();
@@ -52,6 +63,7 @@ namespace Hiwjcn.Web.Controllers
             });
         }
 
+        [RequestLog]
         [LoadNavigation]
         [Route("Page/Show/{name}/")]
         public ActionResult Show(string name)
@@ -84,6 +96,7 @@ namespace Hiwjcn.Web.Controllers
         /// </summary>
         /// <param name="page"></param>
         /// <returns></returns>
+        [RequestLog]
         [LoadNavigation]
         public ActionResult News(int? page)
         {
@@ -96,7 +109,7 @@ namespace Hiwjcn.Web.Controllers
                 if (data != null)
                 {
                     ViewData["list"] = data.DataList;
-                    ViewData["pager"] = data.GetPagerHtml("/page/news/", "page", page.Value, pagesize);
+                    ViewData["pager"] = data.GetPagerHtml(this, "page", page.Value, pagesize);
                 }
 
                 return View();

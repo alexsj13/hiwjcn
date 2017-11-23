@@ -38,29 +38,26 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Autofac, Version=3.5.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\packages\Autofac.3.5.2\lib\net40\Autofac.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Akka, Version=1.3.2.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Akka.1.3.2\lib\net45\Akka.dll</HintPath>
     </Reference>
-    <Reference Include="Autofac.Extras.DynamicProxy, Version=4.1.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\packages\Autofac.Extras.DynamicProxy.4.1.0\lib\net45\Autofac.Extras.DynamicProxy.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Autofac, Version=4.6.2.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
+      <HintPath>..\packages\Autofac.4.6.2\lib\net45\Autofac.dll</HintPath>
     </Reference>
-    <Reference Include="Autofac.Integration.Mvc, Version=3.3.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
-      <HintPath>..\packages\Autofac.Mvc5.3.3.4\lib\net45\Autofac.Integration.Mvc.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Autofac.Extras.DynamicProxy, Version=4.2.1.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
+      <HintPath>..\packages\Autofac.Extras.DynamicProxy.4.2.1\lib\net45\Autofac.Extras.DynamicProxy.dll</HintPath>
     </Reference>
-    <Reference Include="Castle.Core, Version=3.2.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
-      <HintPath>..\packages\Castle.Core.3.2.2\lib\net45\Castle.Core.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Autofac.Integration.Mvc, Version=4.0.0.0, Culture=neutral, PublicKeyToken=17863af14b0044da, processorArchitecture=MSIL">
+      <HintPath>..\packages\Autofac.Mvc5.4.0.2\lib\net45\Autofac.Integration.Mvc.dll</HintPath>
     </Reference>
-    <Reference Include="Common.Logging, Version=3.3.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.3.3.1\lib\net40\Common.Logging.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Castle.Core, Version=4.0.0.0, Culture=neutral, PublicKeyToken=407dd0808d44fbdc, processorArchitecture=MSIL">
+      <HintPath>..\packages\Castle.Core.4.2.1\lib\net45\Castle.Core.dll</HintPath>
     </Reference>
-    <Reference Include="Common.Logging.Core, Version=3.3.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
-      <HintPath>..\packages\Common.Logging.Core.3.3.1\lib\net40\Common.Logging.Core.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Common.Logging, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Common.Logging.3.4.1\lib\net40\Common.Logging.dll</HintPath>
+    </Reference>
+    <Reference Include="Common.Logging.Core, Version=3.4.1.0, Culture=neutral, PublicKeyToken=af08829b84f0328e, processorArchitecture=MSIL">
+      <HintPath>..\packages\Common.Logging.Core.3.4.1\lib\net40\Common.Logging.Core.dll</HintPath>
     </Reference>
     <Reference Include="Dapper, Version=1.50.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\Dapper.1.50.2\lib\net45\Dapper.dll</HintPath>
@@ -71,32 +68,36 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.SqlServer.dll</HintPath>
     </Reference>
     <Reference Include="ICSharpCode.SharpZipLib, Version=0.86.0.518, Culture=neutral, PublicKeyToken=1b03e6acf1164f73, processorArchitecture=MSIL">
       <HintPath>..\packages\SharpZipLib.0.86.0\lib\20\ICSharpCode.SharpZipLib.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="ImageProcessor, Version=2.5.2.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\ImageProcessor.2.5.2\lib\net45\ImageProcessor.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="ImageProcessor, Version=2.5.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\ImageProcessor.2.5.6\lib\net45\ImageProcessor.dll</HintPath>
     </Reference>
-    <Reference Include="log4net, Version=2.0.7.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
-      <HintPath>..\packages\log4net.2.0.7\lib\net45-full\log4net.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="log4net, Version=2.0.8.0, Culture=neutral, PublicKeyToken=669e0ddf0bb1aa2a, processorArchitecture=MSIL">
+      <HintPath>..\packages\log4net.2.0.8\lib\net45-full\log4net.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Web.Infrastructure, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Web.Infrastructure.1.0.0.0\lib\net40\Microsoft.Web.Infrastructure.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="MySql.Data, Version=6.9.9.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
-      <HintPath>..\packages\MySql.Data.6.9.9\lib\net45\MySql.Data.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="MongoDB.Bson, Version=2.4.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MongoDB.Bson.2.4.4\lib\net45\MongoDB.Bson.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Driver, Version=2.4.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MongoDB.Driver.2.4.4\lib\net45\MongoDB.Driver.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Driver.Core, Version=2.4.4.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MongoDB.Driver.Core.2.4.4\lib\net45\MongoDB.Driver.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="MySql.Data, Version=6.9.10.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL">
+      <HintPath>..\packages\MySql.Data.6.9.10\lib\net45\MySql.Data.dll</HintPath>
     </Reference>
     <Reference Include="Nest, Version=2.0.0.0, Culture=neutral, PublicKeyToken=96c599bbe3e70f5d, processorArchitecture=MSIL">
       <HintPath>..\packages\NEST.2.4.6\lib\net45\Nest.dll</HintPath>
@@ -106,39 +107,35 @@
       <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="NPOI, Version=2.2.1.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
-      <HintPath>..\packages\NPOI.2.2.1\lib\net40\NPOI.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="NPOI, Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.3.0\lib\net40\NPOI.dll</HintPath>
     </Reference>
-    <Reference Include="NPOI.OOXML, Version=2.2.1.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
-      <HintPath>..\packages\NPOI.2.2.1\lib\net40\NPOI.OOXML.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="NPOI.OOXML, Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.3.0\lib\net40\NPOI.OOXML.dll</HintPath>
     </Reference>
-    <Reference Include="NPOI.OpenXml4Net, Version=2.2.1.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
-      <HintPath>..\packages\NPOI.2.2.1\lib\net40\NPOI.OpenXml4Net.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="NPOI.OpenXml4Net, Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.3.0\lib\net40\NPOI.OpenXml4Net.dll</HintPath>
     </Reference>
-    <Reference Include="NPOI.OpenXmlFormats, Version=2.2.1.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
-      <HintPath>..\packages\NPOI.2.2.1\lib\net40\NPOI.OpenXmlFormats.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="NPOI.OpenXmlFormats, Version=2.3.0.0, Culture=neutral, PublicKeyToken=0df73ec7942b34e1, processorArchitecture=MSIL">
+      <HintPath>..\packages\NPOI.2.3.0\lib\net40\NPOI.OpenXmlFormats.dll</HintPath>
     </Reference>
-    <Reference Include="Polly, Version=5.0.6.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\Polly.5.0.6\lib\net45\Polly.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Polly, Version=5.4.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Polly.5.4.0\lib\net45\Polly.dll</HintPath>
     </Reference>
-    <Reference Include="Quartz, Version=2.5.0.0, Culture=neutral, PublicKeyToken=f6b8c98a402cc8a4, processorArchitecture=MSIL">
-      <HintPath>..\packages\Quartz.2.5.0\lib\net40\Quartz.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Quartz, Version=2.6.1.0, Culture=neutral, PublicKeyToken=f6b8c98a402cc8a4, processorArchitecture=MSIL">
+      <HintPath>..\packages\Quartz.2.6.1\lib\net40\Quartz.dll</HintPath>
     </Reference>
-    <Reference Include="RabbitMQ.Client, Version=3.6.6.0, Culture=neutral, PublicKeyToken=89e7d7c5feba84ce, processorArchitecture=MSIL">
-      <HintPath>..\packages\RabbitMQ.Client.3.6.6\lib\net45\RabbitMQ.Client.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="RabbitMQ.Client, Version=3.6.9.0, Culture=neutral, PublicKeyToken=89e7d7c5feba84ce, processorArchitecture=MSIL">
+      <HintPath>..\packages\RabbitMQ.Client.3.6.9\lib\net45\RabbitMQ.Client.dll</HintPath>
     </Reference>
-    <Reference Include="StackExchange.Redis, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\StackExchange.Redis.1.2.0\lib\net45\StackExchange.Redis.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="StackExchange.Redis, Version=1.2.6.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\StackExchange.Redis.1.2.6\lib\net45\StackExchange.Redis.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Collections.Immutable, Version=1.2.2.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Collections.Immutable.1.4.0\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
+    </Reference>
+    <Reference Include="System.ComponentModel.Composition" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
@@ -146,6 +143,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Drawing.Design" />
     <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Net" />
     <Reference Include="System.Net.Http">
       <HintPath>..\packages\System.Net.Http.2.0.20126.16343\lib\net40\System.Net.Http.dll</HintPath>
@@ -164,13 +162,32 @@
       <HintPath>..\packages\System.Net.Http.2.0.20126.16343\lib\net40\System.Net.Http.WebRequest.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Reactive.Core, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Core.3.1.1\lib\net45\System.Reactive.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Interfaces, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Interfaces.3.1.1\lib\net45\System.Reactive.Interfaces.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Linq, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Linq.3.1.1\lib\net45\System.Reactive.Linq.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.PlatformServices, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.PlatformServices.3.1.1\lib\net45\System.Reactive.PlatformServices.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Reactive.Windows.Threading, Version=3.0.1000.0, Culture=neutral, PublicKeyToken=94bc3704cddfc263, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Reactive.Windows.Threading.3.1.1\lib\net45\System.Reactive.Windows.Threading.dll</HintPath>
+    </Reference>
     <Reference Include="System.Runtime.Caching" />
+    <Reference Include="System.Runtime.InteropServices.RuntimeInformation, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.Runtime.InteropServices.RuntimeInformation.4.0.0\lib\net45\System.Runtime.InteropServices.RuntimeInformation.dll</HintPath>
+    </Reference>
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Transactions" />
-    <Reference Include="System.ValueTuple, Version=4.0.1.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
-      <HintPath>..\packages\System.ValueTuple.4.3.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+    <Reference Include="System.ValueTuple, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.4.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Helpers, Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -197,52 +214,93 @@
       <HintPath>..\packages\Microsoft.AspNet.WebPages.3.2.3\lib\net45\System.Web.WebPages.Razor.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="System.Windows" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="ZooKeeperNet, Version=3.4.6.1, Culture=neutral, PublicKeyToken=fefd2c046da35b56, processorArchitecture=MSIL">
-      <HintPath>..\packages\ZooKeeper.Net.3.4.6.2\lib\net40\ZooKeeperNet.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="WindowsBase" />
+    <Reference Include="ZooKeeperNetEx, Version=3.4.10.1, Culture=neutral, PublicKeyToken=42cd15de36f9b993, processorArchitecture=MSIL">
+      <HintPath>..\packages\ZooKeeperNetEx.3.4.10.1\lib\net45\ZooKeeperNetEx.dll</HintPath>
     </Reference>
-    <Reference Include="zxing, Version=1.0.4727.18517, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\ZXing.2.1.1\lib\net20\zxing.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="zxing, Version=0.16.2.0, Culture=neutral, PublicKeyToken=4e88037ac681fe60, processorArchitecture=MSIL">
+      <HintPath>..\packages\ZXing.Net.0.16.2\lib\net45\zxing.dll</HintPath>
+    </Reference>
+    <Reference Include="zxing.presentation, Version=0.16.2.0, Culture=neutral, PublicKeyToken=4e88037ac681fe60, processorArchitecture=MSIL">
+      <HintPath>..\packages\ZXing.Net.0.16.2\lib\net45\zxing.presentation.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="api\BaiduTranslateHelper.cs" />
-    <Compile Include="api\UmengPushHelper.cs" />
+    <Compile Include="core\StaticData.cs" />
+    <Compile Include="data\DataSourceContextBase.cs" />
+    <Compile Include="data\ef\EFRepositoryBase.cs" />
+    <Compile Include="data\ef\IEFRepository.cs" />
+    <Compile Include="data\elasticsearch\ElasticsearchClientManager.cs" />
+    <Compile Include="data\elasticsearch\EsExample.cs" />
+    <Compile Include="data\elasticsearch\IElasticSearchIndex.cs" />
+    <Compile Include="data\ILinqRepository.cs" />
+    <Compile Include="data\mongodb\IMongoRepository.cs" />
+    <Compile Include="data\mongodb\MongoContextBase.cs" />
+    <Compile Include="data\mongodb\MongoExtension.cs" />
+    <Compile Include="data\mongodb\MongoRepository.cs" />
+    <Compile Include="data\mongodb\MongoEntityBase.cs" />
+    <Compile Include="data\redis\RedisClientManager.cs" />
+    <Compile Include="data\redis\RedisExtension.cs" />
+    <Compile Include="data\redis\RedisHelper.cs" />
+    <Compile Include="data\redis\RedisManager.cs" />
+    <Compile Include="distributed\akka\ActorTest.cs" />
+    <Compile Include="distributed\akka\AkkaHelper.cs" />
+    <Compile Include="distributed\zookeeper\AlwaysOnZooKeeperClient.cs" />
+    <Compile Include="distributed\zookeeper\ServiceManager\AddressModel.cs" />
+    <Compile Include="distributed\zookeeper\ServiceManager\ServiceManageBase.cs" />
+    <Compile Include="distributed\zookeeper\ServiceManager\ServiceManageHelper.cs" />
+    <Compile Include="distributed\zookeeper\ServiceManager\ServiceManageExtension.cs" />
+    <Compile Include="distributed\zookeeper\ServiceManager\ServiceRegister.cs" />
+    <Compile Include="distributed\zookeeper\ServiceManager\ServiceSubscribe.cs" />
+    <Compile Include="distributed\zookeeper\watcher\CallBackWatcher.cs" />
+    <Compile Include="distributed\zookeeper\watcher\EmptyWatcher.cs" />
+    <Compile Include="distributed\zookeeper\watcher\NodeMonitorWatcher.cs" />
+    <Compile Include="distributed\zookeeper\watcher\ReconnectionWatcher.cs" />
+    <Compile Include="distributed\zookeeper\watcher\WatcherBase.cs" />
+    <Compile Include="distributed\zookeeper\ZooKeeperClientExtension.cs" />
+    <Compile Include="distributed\zookeeper\ZooKeeperConfigSection.cs" />
+    <Compile Include="extra\api\BaiduTranslateHelper.cs" />
+    <Compile Include="extra\api\UmengPushHelper.cs" />
     <Compile Include="cache\CacheExtension.cs" />
     <Compile Include="cache\CacheManager.cs" />
+    <Compile Include="cache\FireWall.cs" />
+    <Compile Include="cache\HttpContextCacheProvider.cs" />
     <Compile Include="cache\ICacheProvider.cs" />
     <Compile Include="cache\MemoryCacheProvider.cs" />
     <Compile Include="cache\MultiLayerCache.cs" />
     <Compile Include="cache\RedisCacheProvider.cs" />
     <Compile Include="core\CircuitBreaker.cs" />
+    <Compile Include="core\CpuTimeLogger.cs" />
     <Compile Include="core\DelegateCollection.cs" />
+    <Compile Include="core\EnumBundle.cs" />
     <Compile Include="core\ExceptionsCollection.cs" />
     <Compile Include="core\LibStartUpHelper.cs" />
-    <Compile Include="core\MimeTypes.cs" />
     <Compile Include="core\MyStringComparer.cs" />
     <Compile Include="core\LibReleaseHelper.cs" />
+    <Compile Include="core\ResultBase.cs" />
+    <Compile Include="core\StepLog.cs" />
     <Compile Include="core\StoreInstanceDict.cs" />
     <Compile Include="core\ThreadWrapper.cs" />
     <Compile Include="data\AntiBadRetry.cs" />
     <Compile Include="data\DapperLinq.cs" />
     <Compile Include="data\DBHelper.cs" />
-    <Compile Include="data\EFEntityDB.cs" />
-    <Compile Include="data\EFExtension.cs" />
-    <Compile Include="data\EFMappingBase.cs" />
-    <Compile Include="data\EFRepository.cs" />
-    <Compile Include="data\EFManager.cs" />
-    <Compile Include="data\RedisManager.cs" />
+    <Compile Include="data\ef\EFEntityDB.cs" />
+    <Compile Include="data\ef\EFExtension.cs" />
+    <Compile Include="data\ef\EFMappingBase.cs" />
+    <Compile Include="data\ef\EFRepository.cs" />
+    <Compile Include="data\ef\EFManager.cs" />
     <Compile Include="data\SerializeBase.cs" />
-    <Compile Include="distributed\ZooKeeperDistributedLock.cs" />
+    <Compile Include="distributed\CrossProcessLock.cs" />
+    <Compile Include="distributed\zookeeper\ZooKeeperDistributedLock.cs" />
     <Compile Include="distributed\IDistributedLock.cs" />
-    <Compile Include="distributed\RedisDistributedLock.cs" />
-    <Compile Include="distributed\ZooKeeperClient.cs" />
-    <Compile Include="distributed\ZooKeeperConfigProvider.cs" />
+    <Compile Include="distributed\redis\RedisDistributedLock.cs" />
+    <Compile Include="distributed\zookeeper\ZooKeeperClient.cs" />
+    <Compile Include="distributed\zookeeper\ZooKeeperConfigProvider.cs" />
     <Compile Include="events\EntityDeleted.cs" />
     <Compile Include="events\EntityInserted.cs" />
     <Compile Include="events\EntityUpdated.cs" />
@@ -262,8 +320,10 @@
     <Compile Include="extension\PollyExtension.cs" />
     <Compile Include="extension\StringExtension.cs" />
     <Compile Include="extension\ReflectionExtension.cs" />
+    <Compile Include="extension\TaskExtension.cs" />
     <Compile Include="extension\ValidateExtension.cs" />
     <Compile Include="helper\EncodingHelper.cs" />
+    <Compile Include="helper\GeoHelper.cs" />
     <Compile Include="helper\LanguageHelper.cs" />
     <Compile Include="helper\MapperHelper.cs" />
     <Compile Include="core\Singleton.cs" />
@@ -271,42 +331,86 @@
     <Compile Include="core\ConfigHelper.cs" />
     <Compile Include="helper\LogHelper.cs" />
     <Compile Include="helper\Pager.cs" />
+    <Compile Include="helper\PermissionHelper.cs" />
     <Compile Include="helper\StringHelper.cs" />
     <Compile Include="helper\HtmlHelper.cs" />
     <Compile Include="helper\ReflectionHelper.cs" />
+    <Compile Include="helper\TaskHelper.cs" />
+    <Compile Include="infrastructure\controller\CRUDControllerBase.cs" />
+    <Compile Include="infrastructure\controller\UserLoginControllerBase.cs" />
+    <Compile Include="infrastructure\entity\AreaEntityBase.cs" />
+    <Compile Include="infrastructure\entity\AuthEntityBase.cs" />
+    <Compile Include="infrastructure\entity\BaseEntity.cs" />
+    <Compile Include="infrastructure\entity\CatalogEntityBase.cs" />
+    <Compile Include="infrastructure\entity\MenuEntityBase.cs" />
+    <Compile Include="infrastructure\entity\TimeEntityBase.cs" />
+    <Compile Include="infrastructure\entity\TreeEntityBase.cs" />
+    <Compile Include="infrastructure\entity\UserEntityBase.cs" />
+    <Compile Include="infrastructure\extension\EntityExtension.cs" />
+    <Compile Include="infrastructure\extension\TreeEntityExtension.cs" />
+    <Compile Include="infrastructure\model\ZTreeNode.cs" />
+    <Compile Include="infrastructure\provider\UserLoginServiceBase.cs" />
     <Compile Include="infrastructure\ServiceBase.cs" />
+    <Compile Include="infrastructure\provider\AuthApiServiceFromDbBase.cs" />
+    <Compile Include="infrastructure\service\AuthLoginService.cs" />
+    <Compile Include="infrastructure\service\AuthServiceBase.cs" />
+    <Compile Include="infrastructure\service\DepartmentServiceBase.cs" />
+    <Compile Include="infrastructure\service\MenuServiceBase.cs" />
+    <Compile Include="infrastructure\service\PermissionServiceBase.cs" />
+    <Compile Include="infrastructure\service\RoleServiceBase.cs" />
+    <Compile Include="infrastructure\service\TreeServiceBase.cs" />
+    <Compile Include="infrastructure\service\UserServiceBase.cs" />
+    <Compile Include="ioc\AppContextExtension.cs" />
     <Compile Include="ioc\BaseDependencyRegistrar.cs" />
     <Compile Include="ioc\DependencyRegistrarBase.cs" />
     <Compile Include="ioc\IAutoRegistered.cs" />
     <Compile Include="ioc\IDependencyRegistrar.cs" />
     <Compile Include="ioc\Interceptors.cs" />
+    <Compile Include="io\GZipHelper.cs" />
+    <Compile Include="io\INIFile.cs" />
     <Compile Include="log\ESLogAppender.cs" />
     <Compile Include="log\ESLogLine.cs" />
     <Compile Include="log\ESLogHelper.cs" />
-    <Compile Include="mq\MessageConsumer.cs" />
-    <Compile Include="mq\MessageProducer.cs" />
-    <Compile Include="mq\RabbitMQChannel.cs" />
-    <Compile Include="mq\RabbitMQClient.cs" />
-    <Compile Include="mq\RabbitMQExtension.cs" />
+    <Compile Include="mq\IMessageQueueConsumer.cs" />
+    <Compile Include="mq\IMessageQueueProducer.cs" />
     <Compile Include="mq\RabbitMQSection.cs" />
+    <Compile Include="mq\rabbitmq\RabbitMQClientManager.cs" />
+    <Compile Include="mq\rabbitmq\RabbitMqConsumerBase.cs" />
+    <Compile Include="mq\rabbitmq\RabbitMqProducer.cs" />
+    <Compile Include="mq\MessageQueueCore.cs" />
+    <Compile Include="mq\MessageQueueExtension.cs" />
+    <Compile Include="mq\rabbitmq\RabbitMqClient.cs" />
+    <Compile Include="mq\rabbitmq\RabbitMQConfig.cs" />
     <Compile Include="mvc\attr\AntiReSubmitAttribute.cs" />
     <Compile Include="mvc\attr\ApiExpireAtAttribute.cs" />
     <Compile Include="mvc\attr\CheckReferrerUrlAttribute.cs" />
     <Compile Include="mvc\attr\CrossDomainAjaxAttribute.cs" />
+    <Compile Include="mvc\attr\HideActionAttribute.cs" />
     <Compile Include="mvc\attr\HtmlCacheAttribute.cs" />
     <Compile Include="mvc\attr\LogErrorAttribute.cs" />
     <Compile Include="mvc\attr\SetEncodingAttribute.cs" />
     <Compile Include="mvc\attr\ValidateSignAttribute.cs" />
     <Compile Include="mvc\attr\ValidCSRFAttribute.cs" />
     <Compile Include="mvc\attr\_ActionFilterBaseAttribute.cs" />
-    <Compile Include="mvc\CookieHelper.cs" />
+    <Compile Include="mvc\auth\api\AuthApiFromWcf.cs" />
+    <Compile Include="mvc\auth\api\AuthApiFromWebApi.cs" />
+    <Compile Include="mvc\auth\AuthExtension.cs" />
+    <Compile Include="mvc\auth\AuthHelper.cs" />
+    <Compile Include="mvc\auth\AuthServerConfig.cs" />
+    <Compile Include="mvc\auth\IAuthApi.cs" />
+    <Compile Include="mvc\auth\ModelSet.cs" />
+    <Compile Include="mvc\auth\validation\AppOrWebAuthDataProvider.cs" />
+    <Compile Include="mvc\auth\validation\AuthBasicValidationProvider.cs" />
+    <Compile Include="mvc\auth\validation\ITokenValidationProvider.cs" />
+    <Compile Include="mvc\auth\validation\IAuthDataProvider.cs" />
+    <Compile Include="mvc\CookieExtension.cs" />
     <Compile Include="mvc\MvcExtension.cs" />
     <Compile Include="mvc\plugin\BasePaymentController.cs" />
     <Compile Include="mvc\plugin\BasePluginController.cs" />
     <Compile Include="mvc\RequestHelper.cs" />
-    <Compile Include="mvc\ResponseHelper.cs" />
+    <Compile Include="mvc\ResponseExtension.cs" />
     <Compile Include="mvc\ServerHelper.cs" />
-    <Compile Include="mvc\SessionHelper.cs" />
+    <Compile Include="mvc\SessionExtension.cs" />
     <Compile Include="data\IRepository.cs" />
     <Compile Include="infrastructure\IServiceBase.cs" />
     <Compile Include="ioc\AppContext.cs" />
@@ -333,19 +437,22 @@
     <Compile Include="mvc\plugin\IRouteProvider.cs" />
     <Compile Include="mvc\plugin\PluginManager.cs" />
     <Compile Include="mvc\plugin\PluginRouteConfig.cs" />
-    <Compile Include="mvc\SignExtension.cs" />
+    <Compile Include="mvc\SignHelper.cs" />
     <Compile Include="mvc\user\AccountHelper.cs" />
     <Compile Include="mvc\NameValueCollectionHelper.cs" />
     <Compile Include="mvc\user\CheckLoginInfoData.cs" />
     <Compile Include="mvc\HtmlExtensions.cs" />
-    <Compile Include="mvc\user\IGetLoginUrl.cs" />
     <Compile Include="mvc\user\LoginUserInfo.cs" />
     <Compile Include="mvc\MySQLSessionProvider.cs" />
-    <Compile Include="mvc\user\PermissionVerifyAttribute.cs" />
     <Compile Include="mvc\ResultBundle.cs" />
     <Compile Include="mvc\user\SSOCheckAttribute.cs" />
     <Compile Include="mvc\user\SSOClientHelper.cs" />
+    <Compile Include="mvc\user\UserModelBase.cs" />
+    <Compile Include="mvc\user\ValidLoginBaseAttribute.cs" />
+    <Compile Include="mvc\view\IViewRenderService.cs" />
+    <Compile Include="mvc\view\RazorViewRenderService.cs" />
     <Compile Include="mvc\WebWorkContext.cs" />
+    <Compile Include="net\HttpClientExtension.cs" />
     <Compile Include="net\HttpClientHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="helper\RegexHelper.cs" />
@@ -355,25 +462,30 @@
     <Compile Include="helper\JsonHelper.cs" />
     <Compile Include="io\QrCode.cs" />
     <Compile Include="helper\XmlHelper.cs" />
+    <Compile Include="rpc\ServiceClientExtension.cs" />
+    <Compile Include="rpc\ServiceCore.cs" />
+    <Compile Include="rpc\WcfInterception.cs" />
+    <Compile Include="rpc\WebApiHelper.cs" />
     <Compile Include="task\QuartzJobBase.cs" />
     <Compile Include="task\ScheduleJobModel.cs" />
     <Compile Include="task\TaskLogger.cs" />
     <Compile Include="task\TaskManager.cs" />
     <Compile Include="TestFile.cs" />
-    <Compile Include="helper\SerializationHelper.cs" />
-    <Compile Include="rpc\WcfClient.cs" />
+    <Compile Include="rpc\ServiceClient.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />
     <None Include="job_scheduling_data_2_0.xsd">
       <SubType>Designer</SubType>
     </None>
+    <None Include="Lib.nuspec" />
     <None Include="packages.config" />
+    <None Include="ReadMe.md" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="使用说明.txt" />
+    <Folder Include="distributed\orleans\" />
+    <Folder Include="infrastructure\contract\" />
   </ItemGroup>
-  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

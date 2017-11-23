@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
+using Polly;
 
 namespace Lib.net
 {
@@ -47,6 +48,25 @@ namespace Lib.net
         public string[] File_attachments { get; set; }
     }
 
+    public static class SendMailExtension
+    {
+        public static void SendWithRetry(this SmtpClient client, MailMessage mail, int count = 1)
+        {
+            Policy.Handle<Exception>().Retry(count).Execute(() =>
+            {
+                client.Send(mail);
+            });
+        }
+
+        public static async Task SendWithRetryAsync(this SmtpClient client, MailMessage mail, int count = 1)
+        {
+            await Policy.Handle<Exception>().RetryAsync(count).ExecuteAsync(async () =>
+            {
+                await client.SendMailAsync(mail);
+            });
+        }
+    }
+
     /// <summary>
     ///Send_Emails 的摘要说明
     /// </summary>
@@ -54,28 +74,22 @@ namespace Lib.net
     {
         private static System.Net.Mail.MailMessage BuildMail(EmailModel model)
         {
-            System.Net.Mail.MailMessage mail = new System.Net.Mail.MailMessage();
+            var mail = new System.Net.Mail.MailMessage();
             //收件人
             if (ValidateHelper.IsPlumpList(model.ToList))
             {
-                model.ToList.ForEach(delegate (string to)
+                foreach (var to in model.ToList)
                 {
-                    if (ValidateHelper.IsEmail(to))
-                    {
-                        mail.To.Add(to);
-                    }
-                });
+                    mail.To.Add(to);
+                }
             }
             //抄送人
             if (ValidateHelper.IsPlumpList(model.CcList))
             {
-                model.CcList.ForEach(delegate (string cc)
+                foreach (var cc in model.CcList)
                 {
-                    if (ValidateHelper.IsEmail(cc))
-                    {
-                        mail.CC.Add(cc);
-                    }
-                });
+                    model.CcList.Add(cc);
+                }
             }
             mail.From = new MailAddress(model.Address, model.SenderName, Encoding.UTF8);
             mail.Subject = model.Subject;
@@ -89,7 +103,7 @@ namespace Lib.net
 
         private static SmtpClient BuildSmtp(EmailModel model)
         {
-            SmtpClient smtp = new SmtpClient();
+            var smtp = new SmtpClient();
             smtp.Credentials = new NetworkCredential(model.UserName, model.Password);
             smtp.Host = model.SmtpServer;
             smtp.EnableSsl = model.EnableSSL;

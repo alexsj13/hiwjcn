@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Globalization;
 using System.Threading.Tasks;
+using System.Reactive;
+using System.Reactive.Linq;
 
 namespace Lib
 {
@@ -11,7 +14,38 @@ namespace Lib
         public static readonly string Name = "wj";
         public static readonly string Email = "hiwjcn@live.com";
         public static readonly string Wechat = "hiwjcn";
-        public static readonly string CodingPage = "https://coding.net/u/wjcodestore";
+        public static readonly string CodingPage = "https://github.com/hiwjcn";
+    }
+
+    public partial class PartialCls
+    {
+        public void xx()
+        { }
+    }
+
+    public partial class PartialCls
+    {
+        public void xx_partial()
+        { }
+    }
+
+    public class SyntaxTest
+    {
+        public SyntaxTest()
+        {
+            dynamic updateDoc = new System.Dynamic.ExpandoObject();
+            updateDoc.Title = "My new title";
+            updateDoc.Description = "default description";
+
+            var bignum = 123_215_435_236_351;
+
+            var cls = new PartialCls();
+            cls.xx();
+            cls.xx_partial();
+
+            var cul = new CultureInfo("");
+            var s = DateTime.Now.ToString(cul.DateTimeFormat);
+        }
     }
 
     public class DectorTest

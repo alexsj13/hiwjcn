@@ -7,12 +7,14 @@ using System.Xml;
 using System.IO;
 using Lib.core;
 using Lib.io;
+using Lib.extension;
 
 namespace Lib.helper
 {
     /// <summary>
     /// xml帮助类
     /// </summary>
+    [Obsolete("没啥用")]
     public static class XmlHelper
     {
         public static bool SaveXmlFromStream(Stream stream, string path, string filename, bool autoDispose = true)
@@ -85,6 +87,29 @@ namespace Lib.helper
         public static string GetNodeInnerText(XmlNode node)
         {
             return node.InnerText;
+        }
+    }
+
+    public static class XmlExtension
+    {
+        public static IEnumerable<XmlAttribute> GetAttributes_(this XmlNode node) =>
+            node.Attributes.AsEnumerable_<XmlAttribute>();
+
+
+        public static IEnumerable<XmlNode> GetChildren_(this XmlNode node) =>
+            node.ChildNodes.AsEnumerable_<XmlNode>();
+
+        public static IEnumerable<XmlNode> SelectNodes_(this XmlNode node, string xpath,
+            XmlNamespaceManager manager = null)
+        {
+            if (manager == null)
+            {
+                return node.SelectNodes(xpath).AsEnumerable_<XmlNode>();
+            }
+            else
+            {
+                return node.SelectNodes(xpath, manager).AsEnumerable_<XmlNode>();
+            }
         }
     }
 }

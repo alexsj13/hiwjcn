@@ -5,6 +5,7 @@ using System.Configuration;
 using System.Web;
 using System.Linq;
 using Lib.mvc;
+using System.Diagnostics;
 
 namespace Lib.extension
 {
@@ -30,6 +31,21 @@ namespace Lib.extension
         {
             return Com.GetExceptionMsgList(e);
         }
+
+        /// <summary>
+        /// 输出
+        /// </summary>
+        public static void DebugInfo(this Exception e)
+        {
+            Debug.WriteLine(e.GetInnerExceptionAsJson());
+        }
+
+        /// <summary>
+        /// 输出
+        /// </summary>
+        public static void DebugInfo(this string msg) =>
+            Debug.WriteLine(msg);
+
         #endregion
 
         #region 日志扩展
@@ -115,16 +131,53 @@ namespace Lib.extension
     {
         public static readonly string LoggerName = ConfigurationManager.AppSettings["LoggerName"] ?? "WebLogger";
 
+        public static readonly bool LogFullException = (ConfigurationManager.AppSettings["LogFullException"] ?? "true").ToBool();
+
+        private static string FriendlyTime()
+        {
+            var now = DateTime.Now;
+            try
+            {
+                var week = DateTimeHelper.GetWeek(now);
+
+                return $"【{now.ToDateTimeString()}】-【{week}】";
+            }
+            catch
+            {
+                return $"{now}";
+            }
+        }
+
         /// <summary>
         /// 错误日志
         /// </summary>
         public static void AddErrorLog(this Exception e, string extra_data = null)
         {
+            string ExceptionJson()
+            {
+                try
+                {
+                    if (!LogFullException)
+                    {
+                        return "无法记录整个异常对象，请修改配置文件";
+                    }
+                    return JsonHelper.ObjectToJson(e);
+                }
+                catch (Exception err)
+                {
+                    return $"无法把整个{nameof(Exception)}对象转为json，原因：{err.Message}";
+                }
+            }
+
             var json = new
             {
                 error_msg = e.GetInnerExceptionAsList(),
+                exception_type = $"异常类型：{e.GetType()?.FullName}",
+                full_exception = ExceptionJson(),
                 req_data = ReqData(),
-                extra_data = extra_data
+                extra_data = extra_data,
+                friendly_time = FriendlyTime(),
+                tips = new string[] { "建议使用json格式化工具：http://json.cn/" }
             }.ToJson();
 
             json.AddErrorLog(LoggerName);
@@ -139,7 +192,8 @@ namespace Lib.extension
             var json = new
             {
                 msg = log,
-                req_data = ReqData()
+                req_data = ReqData(),
+                friendly_time = FriendlyTime(),
             }.ToJson();
 
             json.AddInfoLog(LoggerName);
@@ -154,7 +208,8 @@ namespace Lib.extension
             var json = new
             {
                 msg = log,
-                req_data = ReqData()
+                req_data = ReqData(),
+                friendly_time = FriendlyTime(),
             }.ToJson();
 
             json.AddWarnLog(LoggerName);
@@ -169,17 +224,17 @@ namespace Lib.extension
             try
             {
                 var context = HttpContext.Current;
+                if (context == null)
+                {
+                    return new { msg = "非Web环境" };
+                }
 
                 var req_id = Com.GetRequestID();
-
                 var method = context.Request.HttpMethod;
-
+                var header = context.Request.Headers.ToDict();
                 var url = context.Request.Url.ToString();
-
                 var p = context.Request.Form.ToDict().ToUrlParam();
-
-                var cookies = context.Request.Cookies.AllKeys.Select(x =>
-                new
+                var cookies = context.Request.Cookies.AllKeys.Select(x => new
                 {
                     key = x,
                     value = context.Request.Cookies[x]?.Value
@@ -188,15 +243,17 @@ namespace Lib.extension
                 //请求上下文信息
                 return new
                 {
-                    method = method,
-                    url = url,
-                    req_param = p,
-                    cookies = cookies
+                    RequestID = req_id,
+                    RequestMethod = method,
+                    RequestUrl = url,
+                    RequestParam = p,
+                    RequestHeader = header,
+                    RequestCookie = cookies
                 };
             }
-            catch
+            catch (Exception e)
             {
-                return new { msg = "非Web环境" };
+                return new { msg = e.Message };
             }
         }
     }

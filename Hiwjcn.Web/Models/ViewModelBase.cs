@@ -6,7 +6,7 @@ namespace Hiwjcn.Web.Models
     {
         public virtual LoginUserInfo LoginUser { get; set; }
 
-        public virtual int LoginUserID
+        public virtual long LoginUserID
         {
             get
             {

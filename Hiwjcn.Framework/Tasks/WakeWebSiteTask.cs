@@ -30,21 +30,29 @@ namespace Hiwjcn.Framework.Tasks
         {
             get
             {
-                return TriggerInterval(15);
+                return this.TriggerIntervalInSeconds(30);
             }
         }
 
         public override void Execute(IJobExecutionContext context)
         {
-            try
+            var wakeuplist = new string[]
             {
-                var url = "http://colin.hiwj.cn/";
-                var html = HttpClientHelper.Get(url);
-                $"唤醒网站，读取内容长度为{html?.Length}".AddBusinessInfoLog();
-            }
-            catch (Exception e)
+                "http://auth.qipeilong.net",
+                "http://auth.qipeilong.cn"
+            };
+
+            foreach (var url in wakeuplist)
             {
-                e.AddLog(this.GetType());
+                try
+                {
+                    var html = HttpClientHelper.Get(url);
+                    $"唤醒网站{url}，读取内容长度为{html?.Length}".AddBusinessInfoLog();
+                }
+                catch (Exception e)
+                {
+                    e.AddErrorLog($"{this.Name}:{url}");
+                }
             }
         }
     }

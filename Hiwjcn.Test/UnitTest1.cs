@@ -26,6 +26,9 @@ using QPL.WebService.Order.Core;
 using QPL.WebService.Order.Core.Models;
 using WebLogic.Model.Page;
 using Lib.distributed;
+using Lib.storage;
+using Lib.distributed.redis;
+using Lib.data.redis;
 
 namespace QPL.WebService.Order.Core.Models
 {
@@ -73,6 +76,48 @@ namespace Hiwjcn.Test
 
             var data_1 = await ServiceHelper<IOrderService>.InvokeSyncAsAsync(x => x.GetOrders());
             var data_3 = await ServiceHelper<IOrderService>.InvokeSyncAsAsync(x => x.ThrowOrders());
+
+
+
+
+
+            var steps = new List<string>();
+
+            try
+            {
+                steps.Add("方法开始");
+                //...
+                steps.Add("获取用户");
+                //...
+                steps.Add("获取订单");
+                //...
+                steps.Add("获取商品");
+                //...
+                steps.Add("获取xx");
+                //...
+                steps.Add("方法结束");
+            }
+            catch (Exception e)
+            {
+                e.AddErrorLog();
+                throw e;
+            }
+            finally
+            {
+                //方法开始=>获取用户=>获取订单=>获取商品=>获取xx=>方法结束
+                steps.AsSteps().AddBusinessInfoLog();
+            }
+
+
+
+
+
+
+
+
+
+
+
         }
 
         /// <summary>
@@ -88,11 +133,11 @@ namespace Hiwjcn.Test
             var sections = new List<SectionModel>();
 
 
-            var d = users.Where(x => x.Email.Contains("")).Join(sections.Where(x => x.SectionTitle.Length > 0), x => x.UserID, x => x.SectionID, (user, section) => new { });
+            var d = users.Where(x => x.Email.Contains("")).Join(sections.Where(x => x.SectionTitle.Length > 0), x => x.UID, x => x.UID, (user, section) => new { });
 
             d = from user in users
                 join section in sections
-on user.UserID equals section.SectionID
+on user.UID equals section.UID
                 where user.Email.Contains("") && section.SectionTitle.Length > 0
                 select new { };
         }
@@ -108,6 +153,18 @@ on user.UserID equals section.SectionID
         public void tfasdfasfasf90()
         {
             var json = JsonHelper.ObjectToJson(new { time = DateTime.Now });
+        }
+
+        [TestMethod]
+        public void genlkjlkjljkfa()
+        {
+            try
+            {
+                this.GetType().IsGenericType_(typeof(Task<>));
+                this.GetType().IsGenericType_<string>();
+            }
+            catch (Exception e)
+            { }
         }
 
         [TestMethod]

@@ -11,6 +11,7 @@ using Lib.core;
 using Lib.data;
 using Lib.helper;
 using System.Threading;
+using Lib.data.redis;
 
 namespace WindowsFormApp
 {

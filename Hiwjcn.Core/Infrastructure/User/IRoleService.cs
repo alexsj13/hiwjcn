@@ -10,11 +10,6 @@ namespace Hiwjcn.Core.Infrastructure.User
 {
     public interface IRoleService : IServiceBase<RoleModel>
     {
-        /// <summary>
-        /// 添加角色
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
         string AddRole(RoleModel model);
 
         /// <summary>
@@ -29,14 +24,14 @@ namespace Hiwjcn.Core.Infrastructure.User
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        string DeleteRole(int RoleID);
+        string DeleteRole(string RoleID);
 
         /// <summary>
         /// 获取角色
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        RoleModel GetByID(int id);
+        RoleModel GetByID(string id);
 
         /// <summary>
         /// 获取所有角色
@@ -49,6 +44,6 @@ namespace Hiwjcn.Core.Infrastructure.User
         /// </summary>
         /// <param name="role_id"></param>
         /// <returns></returns>
-        List<string> GetRolePermissionsList(int role_id);
+        List<string> GetRolePermissionsList(string role_id);
     }
 }

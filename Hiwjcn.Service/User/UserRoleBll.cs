@@ -24,14 +24,6 @@ namespace WebLogic.Bll.User
             this._UserRoleDal = new UserRoleDal();
         }
 
-        public override string CheckModel(UserRoleModel model)
-        {
-            if (model == null) { return "用户角色关联对象为空"; }
-            if (model.RoleID <= 0) { return "角色ID为空"; }
-            if (model.UserID <= 0) { return "用户ID为空"; }
-            return string.Empty;
-        }
-
         /// <summary>
         /// 添加用户角色关联
         /// </summary>
@@ -39,10 +31,16 @@ namespace WebLogic.Bll.User
         /// <returns></returns>
         public string AddUserRole(UserRoleModel model)
         {
-            string errinfo = CheckModel(model);
-            if (ValidateHelper.IsPlumpString(errinfo)) { return errinfo; }
+            if (!this.CheckModel(model, out var msg))
+            {
+                return msg;
+            }
 
-            return _UserRoleDal.Add(model) > 0 ? SUCCESS : "添加用户角色关联失败";
+            if (_UserRoleDal.Add(model) > 0)
+            {
+                return this.SUCCESS;
+            }
+            throw new MsgException("添加用户角色关联失败");
         }
 
         /// <summary>
@@ -51,13 +49,10 @@ namespace WebLogic.Bll.User
         /// <param name="user_id"></param>
         /// <param name="role_id"></param>
         /// <returns></returns>
-        public string DeleteUserRole(int user_id, int role_id)
+        public string DeleteUserRole(string user_id, string role_id)
         {
-            if (user_id <= 0 || role_id <= 0) { return "参数错误"; }
-
-            var list = _UserRoleDal.GetList(x => x.UserID == user_id && x.RoleID == role_id);
-            if (!ValidateHelper.IsPlumpList(list)) { return "您要删除的数据不存在"; }
-            return _UserRoleDal.Delete(list.ToArray()) > 0 ? SUCCESS : "删除用户角色关联失败";
+            _UserRoleDal.DeleteWhere(x => x.UserID == user_id && x.RoleID == role_id);
+            return this.SUCCESS;
         }
 
         /// <summary>
@@ -65,19 +60,10 @@ namespace WebLogic.Bll.User
         /// </summary>
         /// <param name="uid"></param>
         /// <returns></returns>
-        public List<int> GetRolesByUserID(int uid)
+        public List<string> GetRolesByUserID(string uid)
         {
-            if (uid <= 0) { return null; }
-            string key = Com.GetCacheKey("GetRolesByUserID:", uid.ToString());
-            return Cache(key, () =>
-            {
-                var list = _UserRoleDal.GetList(x => x.UserID == uid);
-                if (ValidateHelper.IsPlumpList(list))
-                {
-                    return list.Select(x => x.RoleID).Distinct().ToList();
-                }
-                return null;
-            });
+            var list = _UserRoleDal.GetList(x => x.UserID == uid).Select(x => x.UID).Distinct().ToList();
+            return list;
         }
 
     }

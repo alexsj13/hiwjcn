@@ -14,7 +14,7 @@ namespace Lib.mvc.attr
     {
         public override void OnActionExecuted(ActionExecutedContext filterContext)
         {
-            ResponseHelper.AllowCrossDomainAjax(System.Web.HttpContext.Current);
+            System.Web.HttpContext.Current.AllowCrossDomainAjax();
 
             base.OnActionExecuted(filterContext);
         }

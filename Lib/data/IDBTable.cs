@@ -30,7 +30,7 @@ namespace Lib.data
         /// </summary>
         [StringLength(100, MinimumLength = 20, ErrorMessage = "UID必须是长度为20~100的唯一字符串")]
         public virtual string UID { get; set; }
-        
+
         /// <summary>
         /// 转换为json
         /// </summary>

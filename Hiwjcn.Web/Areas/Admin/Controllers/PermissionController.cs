@@ -6,6 +6,8 @@ using System.Linq;
 using System.Web.Mvc;
 using WebLogic.Bll.User;
 using WebLogic.Model.User;
+using Lib.helper;
+using Lib.extension;
 
 namespace WebApp.Areas.Admin.Controllers
 {
@@ -40,14 +42,13 @@ namespace WebApp.Areas.Admin.Controllers
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public ActionResult RoleEdit(int? id)
+        public ActionResult RoleEdit(string id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
-                id = id ?? 0;
-                if (id > 0)
+                if (ValidateHelper.IsPlumpString(id))
                 {
-                    var role = _IRoleService.GetByID(id.Value);
+                    var role = _IRoleService.GetByID(id);
                     ViewData["role"] = role;
                 }
                 return View();
@@ -68,14 +69,14 @@ namespace WebApp.Areas.Admin.Controllers
             return RunActionWhenLogin((loginuser) =>
             {
                 var model = new RoleModel();
-                model.RoleID = id ?? 0;
+                model.IID = id ?? 0;
                 model.RoleName = name;
                 model.RoleDescription = desc;
-                model.AutoAssignRole = auto;
+                model.AutoAssignRole = ConvertHelper.GetString(auto).ToBoolInt();
 
                 var res = string.Empty;
 
-                if (model.RoleID > 0)
+                if (model.IID > 0)
                 {
                     res = _IRoleService.UpdateRole(model);
                 }
@@ -94,13 +95,13 @@ namespace WebApp.Areas.Admin.Controllers
         /// <param name="id"></param>
         /// <returns></returns>
         [HttpPost]
-        public ActionResult DeleteRoleAction(int? id)
+        public ActionResult DeleteRoleAction(string id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
                 string res = string.Empty;
 
-                res = _IRoleService.DeleteRole(id ?? 0);
+                res = _IRoleService.DeleteRole(id);
 
                 return GetJsonRes(res);
             });
@@ -110,19 +111,17 @@ namespace WebApp.Areas.Admin.Controllers
         /// 角色和权限mapping管理
         /// </summary>
         /// <returns></returns>
-        public ActionResult RolePermission(int? role_id)
+        public ActionResult RolePermission(string role_id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
-                role_id = role_id ?? 0;
-                if (role_id <= 0) { return new GoHomeResult(); }
-                var role = _IRoleService.GetByID(role_id.Value);
+                var role = _IRoleService.GetByID(role_id);
                 if (role == null) { return new GoHomeResult(); }
 
                 var model = new RolePermissionViewModel();
                 model.Role = role;
 
-                var rolepermissions = _IRoleService.GetRolePermissionsList(role.RoleID);
+                var rolepermissions = _IRoleService.GetRolePermissionsList(role.UID);
                 if (rolepermissions == null) { rolepermissions = new List<string>(); }
                 var allpermissions = PermissionRecord.GetAllPermission();
                 if (allpermissions == null) { allpermissions = new List<PermissionRecord>(); }
@@ -141,12 +140,12 @@ namespace WebApp.Areas.Admin.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public ActionResult RolePermissionAction(string action, int? role_id, string id)
+        public ActionResult RolePermissionAction(string action, string role_id, string id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
                 var model = new RolePermissionModel();
-                model.RoleID = role_id ?? 0;
+                model.RoleID = role_id;
                 model.PermissionID = id;
 
                 var bll = new RolePermissionBll();
@@ -166,28 +165,27 @@ namespace WebApp.Areas.Admin.Controllers
         /// 用户权限mapping管理
         /// </summary>
         /// <returns></returns>
-        public ActionResult UserRole(int? user_id)
+        public ActionResult UserRole(string user_id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
-                user_id = user_id ?? 0;
-                var user = _IUserService.GetByID(user_id.Value);
+                var user = _IUserService.GetByID(user_id);
                 if (user == null) { return GoHome(); }
 
                 var model = new UserRoleViewModel();
 
                 model.User = user;
 
-                UserRoleBll bll = new UserRoleBll() { UseCache = false };
+                UserRoleBll bll = new UserRoleBll() { };
 
-                var userrolesid = bll.GetRolesByUserID(user.UserID);
-                if (userrolesid == null) { userrolesid = new List<int>(); }
+                var userrolesid = bll.GetRolesByUserID(user.UID);
+                if (userrolesid == null) { userrolesid = new List<string>(); }
 
                 var allrolelist = _IRoleService.GetAllRoles();
                 if (allrolelist == null) { allrolelist = new List<RoleModel>(); }
 
-                model.AssignedList = allrolelist.Where(x => userrolesid.Contains(x.RoleID)).ToList();
-                model.UnAssignedList = allrolelist.Where(x => !userrolesid.Contains(x.RoleID)).ToList();
+                model.AssignedList = allrolelist.Where(x => userrolesid.Contains(x.UID)).ToList();
+                model.UnAssignedList = allrolelist.Where(x => !userrolesid.Contains(x.UID)).ToList();
 
                 ViewData["model"] = model;
 
@@ -200,13 +198,13 @@ namespace WebApp.Areas.Admin.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost]
-        public ActionResult UserRoleAction(string action, int? role_id, int? user_id)
+        public ActionResult UserRoleAction(string action, string role_id, string user_id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
                 var model = new UserRoleModel();
-                model.RoleID = role_id ?? 0;
-                model.UserID = user_id ?? 0;
+                model.RoleID = role_id;
+                model.UserID = user_id;
 
                 var bll = new UserRoleBll();
                 if (action == "add")

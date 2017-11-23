@@ -1,0 +1,32 @@
+﻿@using Hiwjcn.Core.Domain.Auth;
+@{
+    this.SetTitle("登录授权");
+    this.SetDescription("登录授权");
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="center-block" style="max-width:600px;">
+                @{
+                    if (this.X.User == null)
+                    {
+                        var login_type = ConvertHelper.GetString(ViewData["login_type"]);
+                        if (login_type == "code")
+                        {
+                            @IncludeView("auth_loginbycode")
+                        }
+                        else
+                        {
+                            @IncludeView("auth_loginbypassword")
+                        }
+                    }
+                    else
+                    {
+                        @IncludeView("auth_scope_confirm")
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>

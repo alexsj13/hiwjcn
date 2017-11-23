@@ -17,20 +17,6 @@ namespace Bll.Sys
             //
         }
 
-        public override string CheckModel(MessageModel model)
-        {
-            if (model == null) { return "消息对象为空"; }
-            if (!ValidateHelper.IsPlumpString(model.MsgContent))
-            {
-                return "消息内容为空";
-            }
-            if (model.SenderUserID == model.ReceiverUserID)
-            {
-                return "无法给自己发送消息";
-            }
-            return string.Empty;
-        }
-
         /// <summary>
         /// 发送消息
         /// </summary>
@@ -50,16 +36,12 @@ namespace Bll.Sys
         /// <param name="receiverID"></param>
         /// <param name="count"></param>
         /// <returns></returns>
-        public List<MessageModel> GetTopMessage(int receiverID, int count = 100)
+        public List<MessageModel> GetTopMessage(string receiverID, int count = 100)
         {
-            string key = "topmessage,uid:" + receiverID + "count:" + count;
-            return Cache(key, () =>
-            {
-                var mdal = new MessageDal();
-                var list = mdal.QueryList(where: x => x.ReceiverUserID == receiverID, 
-                    orderby: x => x.UpdateTime, Desc: true, start: 0, count: count);
-                return list;
-            });
+            var mdal = new MessageDal();
+            var list = mdal.QueryList(where: x => x.ReceiverUserID == receiverID,
+                orderby: x => x.UpdateTime, Desc: true, start: 0, count: count);
+            return list;
         }
 
         /// <summary>
@@ -70,15 +52,11 @@ namespace Bll.Sys
         /// <param name="month"></param>
         /// <param name="day"></param>
         /// <returns></returns>
-        public int GetSenderMessageCount(int user_id, DateTime start, DateTime end)
+        public int GetSenderMessageCount(string user_id, DateTime start, DateTime end)
         {
-            string key = Com.GetCacheKey("messagecount", user_id.ToString(), start.ToString(), end.ToString());
-            return Cache(key, () =>
-            {
-                var pdal = new MessageDal();
-                return pdal.GetCount(x => x.SenderUserID == user_id
-                    && x.UpdateTime >= start && x.UpdateTime < end);
-            });
+            var pdal = new MessageDal();
+            return pdal.GetCount(x => x.SenderUserID == user_id
+                && x.UpdateTime >= start && x.UpdateTime < end);
         }
 
     }

@@ -1,0 +1,118 @@
+﻿@using Hiwjcn.Core.Domain.Auth;
+@{
+    this.SetLayout("AuthManageLayout");
+    this.SetTitle("编辑Scope");
+}
+
+<div class="alert alert-info">
+    <span class="fa fa-info-circle"></span>
+    <span>name无法修改</span>
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading">编辑Scope</div>
+    <div class="panel-body">
+        @{
+            var m = this.GetNotNullViewData<AuthScope>("m");
+        }
+        <form id="fm">
+            <table class="table table-striped table-hover">
+                <thead style="display:none;">
+                    <tr>
+                        <td width="10%;"></td>
+                        <td>
+                            <input type="hidden" name="IID" value="@(m.IID)" />
+                            <input type="hidden" name="UID" value="@(m.UID)" />
+                        </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>名称</td>
+                        <td>
+                            <input type="text" class="form-control" name="Name" value="@(m.Name)" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>展示</td>
+                        <td>
+                            <input type="text" class="form-control" name="DisplayName" value="@(m.DisplayName)" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>描述</td>
+                        <td>
+                            <input type="text" class="form-control" name="Description" value="@(m.Description)" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>图标</td>
+                        <td>
+                            <div class="input-group">
+                                <span class="input-group-addon">图标URL</span>
+                                <input type="text" class="form-control" name="ImageUrl" value="@(m.ImageUrl)" />
+                                <span class="input-group-addon">字体图标Class</span>
+                                <input type="text" class="form-control" name="FontIcon" value="@(m.FontIcon)" />
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>排序</td>
+                        <td>
+                            <input type="number" class="form-control" name="Sort" value="@(m.Sort)" />
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>选项</td>
+                        <td>
+                            <div class="input-group">
+                                <span class="input-group-addon">是否是重要权限</span>
+                                <select class="form-control" name="Important" data-value="@(m.Important)">
+                                    <option value="1">是</option>
+                                    <option value="0">否</option>
+                                </select>
+                                <span class="input-group-addon">是否是默认权限</span>
+                                <select class="form-control" name="IsDefault" data-value="@(m.IsDefault)">
+                                    <option value="1">是</option>
+                                    <option value="0">否</option>
+                                </select>
+                                <span class="input-group-addon">禁用</span>
+                                <select class="form-control" name="IsRemove" data-value="@(m.IsRemove)">
+                                    <option value="1">是</option>
+                                    <option value="0">否</option>
+                                </select>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="2">
+                            <div class="text-right">
+                                <button type="submit" class="btn btn-success">保存</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $(function () {
+        var form = $('#fm');
+        form.submit(function () {
+            var data = form.serializeArray();
+            postJson('/AuthManage/SaveScopeAction', data, function (res) {
+                if (res && res.Success) {
+                    window.location.href = '/AuthManage/Scopes';
+                }
+                else {
+                    alert(res.ErrorMsg);
+                }
+            });
+            return false;
+        });
+    });
+</script>

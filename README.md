@@ -3,7 +3,7 @@
 	>基于autofac.dynamicproxy的aop面向切面编程
 	>entity framework orm+仓储模式架构
 	>events事件发布订阅
-	>使用PreApplicationStartMethod实现的插件机制
+	>使用PreApplicationStartMethod实现的插件机制（不稳定）
 	>基于json字典库的多语言
 	>基于redis/内存的缓存组件
 	>基于quartz的后台任务
@@ -14,10 +14,15 @@
 	>Mysql存储Session
 	>第三方api调用
 	>身份验证权限
+	>Auth授权系统
+	>Akka Actor编程模型
+	>WebSocket（未完成）
 	>各种类库...
 	
 ### Lib项目
 https://www.nuget.org/packages/lib.com.nuget/
+
+![Lib项目](http://hiwjcn.qiniudn.com/tools.png)
 
 ### Bug反馈
 issue or hiwjcn@live.com

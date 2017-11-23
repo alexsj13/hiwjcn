@@ -30,3 +30,11 @@
 /Hiwjcn.Service/obj/Release/CoreCompileInputs.cache
 /Hiwjcn.Service/obj/Release/CoreCompileInputs.cache
 *.cache
+/Hiwjcn.Api/bin
+/Hiwjcn.Api/obj/Debug
+/Lib.storage/obj/Debug
+/Lib.storage/bin/Debug
+obj
+bin
+*.nupkg
+*.nupkg

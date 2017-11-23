@@ -92,12 +92,12 @@
         $(function () {
             $('#fm').submit(function () {
                 postFormJson('/account/RegisterAction/', 'fm', function (res) {
-                    if (res && res.success) {
+                    if (res && res.Success) {
                         alert('注册成功');
                         window.location.href = '/sso/login/';
                     }
                     else {
-                        alert(res.msg);
+                        alert(res.ErrorMsg);
                     }
                 });
                 return false;

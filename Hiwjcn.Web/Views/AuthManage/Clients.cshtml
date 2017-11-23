@@ -1,0 +1,67 @@
+﻿@using Hiwjcn.Core.Domain.Auth;
+@{
+    this.SetLayout("AuthManageLayout");
+    this.SetTitle("应用");
+}
+
+<div class="panel panel-default">
+    <div class="panel-heading">Client</div>
+    <div class="panel-body">
+        @{
+            var list = this.GetNotNullViewData<List<AuthClient>>("list");
+            if (ValidateHelper.IsPlumpList(list))
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <td width="100px"></td>
+                            <td>名称</td>
+                            <td>描述</td>
+                            <td>Key/Security</td>
+                            <td></td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in list)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="@(m.ClientUrl)" target="_blank" class="thumbnail" style="margin:0;">
+                                        <img src="@(m.LogoUrl)" alt="">
+                                    </a>
+                                </td>
+                                <td>@(m.ClientName)</td>
+                                <td>@(m.Description)</td>
+                                <td>
+                                    <p>Key:<span class="label label-default">@(m.UID)</span></p>
+                                    <p>Security:<span class="label label-default">@(m.ClientSecretUID)</span></p>
+                                </td>
+                                <td>
+                                    @if (m.IsOfficial > 0)
+                                    {
+                                        <div><span class="label label-success">官方</span></div>
+                                    }
+                                    @if (m.IsActive <= 0)
+                                    {
+                                        <div><span class="label label-warning">冻结状态</span></div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="5" class="right">
+                                @(Pager())
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            }
+            else
+            {
+                <div class="alert alert-info">没有应用</div>
+            }
+        }
+    </div>
+</div>

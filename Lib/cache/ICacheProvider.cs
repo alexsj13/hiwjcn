@@ -2,16 +2,17 @@ using System;
 using System.Text;
 using Newtonsoft.Json;
 using Lib.data;
+using System.Configuration;
 
 namespace Lib.cache
 {
     /// <summary>
     /// 带是否成功标志位的结果
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    [Serializable]
     public class CacheResult<T>
     {
-        public virtual bool Success { get; set; }
+        public virtual bool Success { get; set; } = false;
         public virtual T Result { get; set; }
     }
 
@@ -21,6 +22,15 @@ namespace Lib.cache
     public abstract class CacheBase : SerializeBase
     {
         //
+    }
+
+    /// <summary>
+    /// 缓存命中情况
+    /// </summary>
+    public enum CacheHitStatusEnum : int
+    {
+        NotHit = 0,
+        Hit = 1
     }
 
     /// <summary>
@@ -61,11 +71,13 @@ namespace Lib.cache
         /// Removes items by pattern
         /// </summary>
         /// <param name="pattern">pattern</param>
+        [Obsolete("不推荐使用，效率低，部分provider无法实现")]
         void RemoveByPattern(string pattern);
 
         /// <summary>
         /// Clear all cache data
         /// </summary>
+        [Obsolete("不推荐使用，效率低，部分provider无法实现")]
         void Clear();
     }
 }

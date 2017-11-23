@@ -106,7 +106,7 @@ namespace Lib.io
             }).ToList();
 
             //把验证码保存起来
-            this.Code = "".Join(items.Select(x => x.c));
+            this.Code = items.Select(x => x.c).ConcatString();
             int Height = (int)(items.Select(x => x.font).Max(x => x.Height) * 1.3);
             int Width = (int)(Height * 0.8 * CharCount);
             //获取随机字体，颜色

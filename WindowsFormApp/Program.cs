@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Hiwjcn.Framework;
+using Lib.ioc;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,9 +16,11 @@ namespace WindowsFormApp
         [STAThread]
         static void Main()
         {
+            AppContext.AddExtraRegistrar(new CommonDependencyRegister());
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new RegexTest());
+            Application.Run(new Menus());
         }
     }
 }

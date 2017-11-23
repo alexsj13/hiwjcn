@@ -27,9 +27,34 @@ namespace Lib.task
         public abstract bool AutoStart { get; }
 
         /// <summary>
-        /// 调度规则
+        /// 调度规则，多次调用将多次创建，多次调用请使用CachedTrigger
         /// </summary>
         public abstract ITrigger Trigger { get; }
+
+        private readonly object trigger_lock = new object();
+        private ITrigger _trigger = null;
+
+        /// <summary>
+        /// 触发器只创建一次
+        /// </summary>
+        public virtual ITrigger CachedTrigger
+        {
+            get
+            {
+                if (this._trigger == null)
+                {
+                    lock (this.trigger_lock)
+                    {
+                        if (this._trigger == null)
+                        {
+                            this._trigger = this.Trigger ?? throw new Exception("job触发器不能为空");
+                        }
+                    }
+                }
+                return this._trigger;
+            }
+        }
+
 
         /// <summary>
         /// 任务的具体实现
@@ -79,8 +104,30 @@ namespace Lib.task
         /// </summary>
         /// <param name="seconds"></param>
         /// <returns></returns>
-        protected ITrigger TriggerInterval(int seconds) =>
+        [Obsolete("实用替代方法：" + nameof(TriggerIntervalInSeconds))]
+        protected ITrigger TriggerInterval(int seconds) => this.TriggerIntervalInSeconds(seconds);
+
+        /// <summary>
+        /// 隔几秒
+        /// </summary>
+        /// <param name="seconds"></param>
+        /// <returns></returns>
+        protected ITrigger TriggerIntervalInSeconds(int seconds) =>
             BuildTrigger(t => t.StartNow().WithSimpleSchedule(x => x.WithIntervalInSeconds(seconds).RepeatForever()).Build());
+
+        /// <summary>
+        /// 隔几分钟
+        /// </summary>
+        /// <param name="minutes"></param>
+        /// <returns></returns>
+        protected ITrigger TriggerIntervalInMinutes(int minutes) => this.TriggerIntervalInSeconds(60 * minutes);
+
+        /// <summary>
+        /// 隔几小时
+        /// </summary>
+        /// <param name="hours"></param>
+        /// <returns></returns>
+        protected ITrigger TriggerIntervalInHours(int hours) => this.TriggerIntervalInMinutes(60 * hours);
 
         /// <summary>
         /// 创建trigger
@@ -88,5 +135,23 @@ namespace Lib.task
         /// <param name="func"></param>
         /// <returns></returns>
         protected ITrigger BuildTrigger(Func<TriggerBuilder, ITrigger> func) => func(TriggerBuilder.Create());
+
+        private void Test()
+        {
+            var start = DateTime.Now.AddHours(1);
+            start = new DateTime(start.Year, start.Month, start.Day, start.Hour, 0, 0);
+
+            BuildTrigger(t => t.StartAt(DateTimeOffset.Now.Add(start - DateTime.Now)).WithSimpleSchedule(x => x.WithIntervalInHours(1).RepeatForever()).Build());
+        }
+    }
+
+    public abstract class QuartzJobBase_ : QuartzJobBase
+    {
+        public override void Execute(IJobExecutionContext context)
+        {
+            this.ExecuteJob(context);
+        }
+
+        public abstract void ExecuteJob(IJobExecutionContext context);
     }
 }

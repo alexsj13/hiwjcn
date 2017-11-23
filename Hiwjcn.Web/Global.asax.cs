@@ -1,5 +1,7 @@
-﻿using Autofac.Integration.Mvc;
+﻿using Autofac;
+using Autofac.Integration.Mvc;
 using Hiwjcn.Dal;
+using Hiwjcn.Framework;
 using Hiwjcn.Web.App_Start;
 using Lib.core;
 using Lib.data;
@@ -9,56 +11,143 @@ using Lib.ioc;
 using Lib.mvc;
 using Lib.task;
 using System;
+using Lib.mvc.auth;
+using System.Data.Entity;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
 using System.Web.Routing;
+using System.Reflection;
+using Hiwjcn.Framework.Tasks;
+using Lib.mvc.user;
+using Hiwjcn.Bll;
+using Hiwjcn.Framework.Provider;
+using Lib.mvc.auth.validation;
+using Hiwjcn.Bll.Auth;
+using Hiwjcn.Framework.Factory;
+using Hiwjcn.Core.Data;
+using Polly;
+using Polly.Timeout;
+using System.IO;
+using System.Configuration;
+using Hiwjcn.Core.Infrastructure.Auth;
+using Lib.infrastructure.service;
+using Lib.data.ef;
 
 namespace Hiwjcn.Web
 {
     public class MvcApplication : System.Web.HttpApplication
     {
-        private static Task start_up_task = null;
+        private readonly ISettings settting = ConfigHelper.Instance;
 
         #region Application
         protected void Application_Start()
         {
             try
             {
-                var start = DateTime.Now;
-
-                //添加依赖注入
-                AppContext.AddExtraRegistrar(new FullDependencyRegistrar());
-
-                //disable "X-AspNetMvc-Version" header name
-                MvcHandler.DisableMvcResponseHeader = true;
-                AreaRegistration.RegisterAllAreas();
-                FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
-                RouteConfig.RegisterRoutes(RouteTable.Routes);
-                //用AutoFac接管控制器生成，从而实现依赖注入
-                //ControllerBuilder.Current.SetControllerFactory(typeof(AutoFacControllerFactory));
-                //使用autofac生成控制器
-                DependencyResolver.SetResolver(new AutofacDependencyResolver(AppContext.Container));
-                //加速首次启动EF
-                //EFManager.SelectDB(null).FastStart();
-                EFManager.FastStart<EntityDB>();
-
-                start_up_task = Task.Run(() =>
+                Action<long, string> logger = (ms, name) =>
                 {
-                    //启动后台服务
-                    TaskManager.InitTasks();
-                    //do something else
-                });
+                    $"{nameof(Application_Start)}|耗时：{ms}毫秒".AddBusinessInfoLog();
+                };
+                using (var timer = new CpuTimeLogger(logger))
+                {
+                    /*
+                    if (!("config_1.json", "config_2.json").SameJsonStructure())
+                    {
+                        throw new Exception("正式机和测试机配置文件结构不相同");
+                    }*/
 
-                //记录程序开始
-                $"Application_Start|耗时：{(DateTime.Now - start).TotalSeconds}秒".AddInfoLog(this.GetType());
-                //"记录数据库的日志".AddBusinessInfoLog();
+                    //添加依赖注入
+                    AppContext.AddExtraRegistrar(new CommonDependencyRegister());
+                    AppContext.AddExtraRegistrar(new FullDependencyRegistrar());
+                    AppContext.OnContainerBuilding = (ref ContainerBuilder builder) =>
+                    {
+                        //sso
+                        //builder.Register(_ => new LoginStatus("auth_sso_uid", "auth_sso_token", "auth_sso_session", "")).Named<LoginStatus>("sso").SingleInstance();
+                        //builder.RegisterType<SSOValidationProvider>().Named<TokenValidationProviderBase>("sso").SingleInstance();
+
+                        builder.UseAccountSystem<QPLUserLoginService>();
+                        //builder.AuthUseAuthServerValidation(() => new AuthServerConfig() { });
+                        builder.AuthUseLoginStatus(() => new LoginStatus($"auth_user_uid", $"auth_user_token", $"auth_user_session"));
+                        builder.AuthUseValidationDataProvider<AppOrWebAuthDataProvider>();
+                        builder.AuthClientUseCustomValidation<AuthBasicValidationProvider>();
+                        //auth 功能逻辑
+                        builder.AuthUseServerApiAccessService<AuthApiServiceFromDB_>();
+                    };
+
+                    //disable "X-AspNetMvc-Version" header name
+                    MvcHandler.DisableMvcResponseHeader = true;
+                    AreaRegistration.RegisterAllAreas();
+                    FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
+                    RouteConfig.RegisterRoutes(RouteTable.Routes);
+                    //用AutoFac接管控制器生成，从而实现依赖注入
+                    //ControllerBuilder.Current.SetControllerFactory(typeof(AutoFacControllerFactory));
+                    //使用autofac生成控制器
+                    DependencyResolver.SetResolver(AppContext.Container.AutofacDependencyResolver_());
+
+                    try
+                    {
+                        //断网的情况下这里不会抛异常，会长时间等待
+                        Policy.Timeout(TimeSpan.FromSeconds(6), TimeoutStrategy.Pessimistic).Execute(() =>
+                        {
+                            //加速首次启动EF
+                            //EFManager.SelectDB(null).FastStart();
+                            EFManager.FastStart<EntityDB>();
+                            //汽配龙数据库
+                            EFManager.FastStart<QPLEntityDB>();
+                            //SSO数据库
+                            EFManager.FastStart<SSODB>();
+                        });
+                    }
+                    catch (Exception err)
+                    {
+                        throw new Exception("设置EF快速启动失败", err);
+                    }
+
+#if DEBUG
+                    //安装数据库
+                    this.InstallDatabase();
+#endif
+
+                    //启动后台服务
+                    TaskManager.StartAllTasks(new Assembly[] { typeof(CleanDatabaseTask).Assembly });
+                }
             }
             catch (Exception e)
             {
-                e.AddLog("网站启动异常");
+                e.AddErrorLog("网站启动异常");
                 throw e;
+            }
+        }
+
+        /// <summary>
+        /// 安装数据库
+        /// </summary>
+        private void InstallDatabase()
+        {
+            try
+            {
+                var app_data = Server.AppDataPath();
+                new DirectoryInfo(app_data).CreateIfNotExist();
+                var lock_file = Path.Combine(app_data, "database_installed.json");
+
+                if (!File.Exists(lock_file))
+                {
+                    //尝试创建数据表
+                    EFManager.TryInstallDatabase<EntityDB>();
+                    //写文件
+                    var data = new
+                    {
+                        msg = "数据库已经安装，要重新安装请删除这个文件并重启系统",
+                        time = DateTime.Now
+                    }.ToJson();
+                    File.WriteAllText(lock_file, data, settting.SystemEncoding);
+                }
+            }
+            catch (Exception e)
+            {
+                throw new Exception("尝试安装数据库失败", e);
             }
         }
 
@@ -66,16 +155,17 @@ namespace Hiwjcn.Web
         {
             try
             {
+                ActorsFactory.Dispose();
                 //关闭的时候不等待任务完成
                 TaskManager._WaitForJobsToComplete = false;
                 LibReleaseHelper.DisposeAll();
 
                 //记录程序关闭
-                "Application_End".AddInfoLog(this.GetType());
+                nameof(Application_End).AddBusinessInfoLog();
             }
             catch (Exception ex)
             {
-                ex.AddLog("网站关闭异常");
+                ex.AddErrorLog("网站关闭异常");
                 throw ex;
             }
         }
@@ -90,42 +180,40 @@ namespace Hiwjcn.Web
             var ex = Server.GetLastError();
             if (ex == null) { return; }
             //记录错误
-            if (ex is HttpException)
+            if (ex is HttpException err)
             {
-                var err = ex as HttpException;
-                if (err != null)
+                int httpcode = err.GetHttpCode();
+                if (new int[] { 404, 403, 500 }.Contains(httpcode))
                 {
-                    int httpcode = err.GetHttpCode();
-                    if (new int[] { 404, 403, 500 }.Contains(httpcode))
+                    //进入处理范围
+                    Server.ClearError();
+                    Response.Clear();
+                    Response.TrySkipIisCustomErrors = true;
+                    string ActionName = string.Empty;
+
+                    var controller = new Hiwjcn.Web.Controllers.ErrorController();
+
+                    switch (httpcode)
                     {
-                        //进入处理范围
-                        Server.ClearError();
-                        Response.Clear();
-                        Response.TrySkipIisCustomErrors = true;
-                        string ActionName = string.Empty;
-
-                        switch (httpcode)
-                        {
-                            case 404: ActionName = "Http404"; break;
-                            case 403: ActionName = "Http403"; break;
-                            case 500: ActionName = "Http500"; break;
-                            default: ActionName = "Http404"; break;
-                        }
-
-                        var routingData = new RouteData();
-                        // In case controller is in another area
-                        //routingData.DataTokens["area"] = "AreaName"; 
-                        routingData.Values["controller"] = "Error";
-                        routingData.Values["action"] = ActionName;
-
-                        IController c = new Hiwjcn.Web.Controllers.ErrorController();
-                        c.Execute(new RequestContext(new HttpContextWrapper(Context), routingData));
+                        case 404: ActionName = nameof(controller.Http404); break;
+                        case 403: ActionName = nameof(controller.Http403); break;
+                        case 500: ActionName = nameof(controller.Http500); break;
+                        default: ActionName = nameof(controller.Http404); break;
                     }
+
+                    var routingData = new RouteData();
+                    // In case controller is in another area
+                    //routingData.DataTokens["area"] = "AreaName"; 
+                    routingData.Values["controller"] = "Error";
+                    routingData.Values["action"] = ActionName;
+
+                    IController c = controller;
+                    c.Execute(new RequestContext(new HttpContextWrapper(Context), routingData));
                 }
             }
             else
             {
-                ex.AddLog(this.GetType());
+                ex.AddErrorLog($"{nameof(Application_Error123)}捕捉到错误");
             }
         }
         #endregion
@@ -136,7 +224,7 @@ namespace Hiwjcn.Web
             //设置请求的唯一ID
             Com.SetNewRequestID();
             //开启跨域
-            ResponseHelper.AllowCrossDomainAjax(System.Web.HttpContext.Current);
+            HttpContext.Current.AllowCrossDomainAjax();
         }
         #endregion
 

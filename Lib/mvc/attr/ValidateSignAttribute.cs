@@ -41,7 +41,7 @@ namespace Lib.mvc.attr
             var disable_timestamp_check = ConvertHelper.GetString(ConfigurationManager.AppSettings["disable_timestamp_check"]).ToBool();
             if (!disable_timestamp_check)
             {
-                var timestamp = ConvertHelper.GetInt64(allparams["timestamp"], -1);
+                var timestamp = ConvertHelper.GetInt64(allparams.GetValueOrDefault("timestamp"), -1);
                 if (timestamp < 0)
                 {
                     filterContext.Result = ResultHelper.BadRequest("缺少时间戳");
@@ -65,7 +65,7 @@ namespace Lib.mvc.attr
             var disable_sign_check = ConvertHelper.GetString(ConfigurationManager.AppSettings["disable_sign_check"]).ToBool();
             if (!disable_sign_check)
             {
-                var sign = ConvertHelper.GetString(allparams[SignKey]).ToUpper();
+                var sign = ConvertHelper.GetString(allparams.GetValueOrDefault(SignKey)).ToUpper();
                 if (!ValidateHelper.IsAllPlumpString(sign))
                 {
                     filterContext.Result = ResultHelper.BadRequest("请求被拦截，获取不到签名");

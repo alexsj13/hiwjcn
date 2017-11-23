@@ -19,13 +19,6 @@ namespace Hiwjcn.Bll.Sys
             //
         }
 
-        public override string CheckModel(ReqLogModel model)
-        {
-            if (model == null) { return "请求日志对象为空"; }
-            if (model.ReqTime < 0) { return "请求耗时参数错误"; }
-            return string.Empty;
-        }
-
         public string AddLog(ReqLogModel model)
         {
             var err = CheckModel(model);
@@ -36,68 +29,58 @@ namespace Hiwjcn.Bll.Sys
 
         public List<ReqLogGroupModel> GetGroupedList(DateTime? start = null, int count = 50)
         {
-            string key = Com.GetCacheKey("ReqLogBll.GetGroupedList",
-                ConvertHelper.GetString(start), count.ToString());
-            return Cache(key, () =>
+            var dal = new ReqLogDal();
+            List<ReqLogGroupModel> list = null;
+            dal.PrepareIQueryable((query) =>
             {
-                var dal = new ReqLogDal();
-                List<ReqLogGroupModel> list = null;
-                dal.PrepareIQueryable((query) =>
+                if (start != null)
                 {
-                    if (start != null)
+                    query = query.Where(x => x.UpdateTime > start.Value);
+                }
+                list = query.GroupBy(x => new { x.AreaName, x.ControllerName, x.ActionName })
+                    .Select(x => new ReqLogGroupModel()
                     {
-                        query = query.Where(x => x.UpdateTime > start.Value);
-                    }
-                    list = query.GroupBy(x => new { x.AreaName, x.ControllerName, x.ActionName })
-                        .Select(x => new ReqLogGroupModel()
-                        {
-                            AreaName = x.Key.AreaName,
-                            ControllerName = x.Key.ControllerName,
-                            ActionName = x.Key.ActionName,
-                            ReqTime = x.Average(m => m.ReqTime),
-                            ReqCount = x.Count()
-                        })
-                        .OrderByDescending(x => x.ReqTime)
-                        .Skip(0).Take(count).ToList();
-                    return true;
-                });
-                return list;
+                        AreaName = x.Key.AreaName,
+                        ControllerName = x.Key.ControllerName,
+                        ActionName = x.Key.ActionName,
+                        ReqTime = x.Average(m => m.ReqTime),
+                        ReqCount = x.Count()
+                    })
+                    .OrderByDescending(x => x.ReqTime)
+                    .Skip(0).Take(count).ToList();
+                return true;
             });
+            return list;
         }
 
         public List<ReqLogModel> GetList(DateTime? start = null,
             string area = null, string controller = null, string action = null,
             int count = 50)
         {
-            string key = Com.GetCacheKey("ReqLogBll.GetList",
-                ConvertHelper.GetString(start), area, controller, action, count.ToString());
-            return Cache(key, () =>
+            var dal = new ReqLogDal();
+            List<ReqLogModel> list = null;
+            dal.PrepareIQueryable((query) =>
             {
-                var dal = new ReqLogDal();
-                List<ReqLogModel> list = null;
-                dal.PrepareIQueryable((query) =>
+                if (start != null)
                 {
-                    if (start != null)
-                    {
-                        query = query.Where(x => x.UpdateTime > start.Value);
-                    }
-                    if (ValidateHelper.IsPlumpString(area))
-                    {
-                        query = query.Where(x => x.AreaName == area);
-                    }
-                    if (ValidateHelper.IsPlumpString(controller))
-                    {
-                        query = query.Where(x => x.ControllerName == controller);
-                    }
-                    if (ValidateHelper.IsPlumpString(action))
-                    {
-                        query = query.Where(x => x.ActionName == action);
-                    }
-                    list = query.OrderByDescending(x => x.ReqTime).Skip(0).Take(count).ToList();
-                    return true;
-                });
-                return list;
+                    query = query.Where(x => x.UpdateTime > start.Value);
+                }
+                if (ValidateHelper.IsPlumpString(area))
+                {
+                    query = query.Where(x => x.AreaName == area);
+                }
+                if (ValidateHelper.IsPlumpString(controller))
+                {
+                    query = query.Where(x => x.ControllerName == controller);
+                }
+                if (ValidateHelper.IsPlumpString(action))
+                {
+                    query = query.Where(x => x.ActionName == action);
+                }
+                list = query.OrderByDescending(x => x.ReqTime).Skip(0).Take(count).ToList();
+                return true;
             });
+            return list;
         }
 
     }

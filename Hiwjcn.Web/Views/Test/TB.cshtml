@@ -7,9 +7,9 @@
     {
         foreach (var col in list)
         {
-            col.Field = ConvertHelper.getString(col.Field);
-            col.Type = ConvertHelper.getString(col.Type).ToLower();
-            col.Key = ConvertHelper.getString(col.Key).ToUpper();
+            col.Field = ConvertHelper.GetString(col.Field);
+            col.Type = ConvertHelper.GetString(col.Type).ToLower();
+            col.Key = ConvertHelper.GetString(col.Key).ToUpper();
 
             if (col.Key == "PRI")
             {

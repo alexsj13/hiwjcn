@@ -33,8 +33,7 @@ namespace WebApp.Areas.Admin.Controllers
                 if (data != null)
                 {
                     ViewData["list"] = data.DataList;
-                    string url = "/admin/section/sectionlist/?";
-                    ViewData["pager"] = data.GetPagerHtml(url, "page", page.Value, pageSize);
+                    ViewData["pager"] = data.GetPagerHtml(this, "page", page.Value, pageSize);
                 }
                 return View();
             });
@@ -76,7 +75,7 @@ namespace WebApp.Areas.Admin.Controllers
                 id = id ?? 0;
 
                 var model = new SectionModel();
-                model.SectionID = id.Value;
+                model.IID = id.Value;
                 model.SectionName = section_name;
                 model.SectionTitle = section_title;
                 model.SectionDescription = section_description;
@@ -87,7 +86,7 @@ namespace WebApp.Areas.Admin.Controllers
 
                 var res = string.Empty;
 
-                if (model.SectionID > 0)
+                if (model.IID > 0)
                 {
                     //update
                     res = _IPageService.UpdateSection(model);

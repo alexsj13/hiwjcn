@@ -11,6 +11,7 @@ namespace Lib.mvc.attr
     /// <summary>
     /// 异常处理
     /// </summary>
+    [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
     public class LogErrorAttribute : HandleErrorAttribute
     {
         /// <summary>

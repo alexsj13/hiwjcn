@@ -12,6 +12,8 @@ namespace Lib.helper
     /// </summary>
     public static class SecureHelper
     {
+        private static Encoding _encoding { get => Encoding.UTF8; }
+
         private static string BsToStr(byte[] bs) => string.Join(string.Empty, bs.Select(x => x.ToString("x2"))).Replace("-", string.Empty);
 
         /// <summary>
@@ -23,8 +25,22 @@ namespace Lib.helper
         {
             using (var md5 = new MD5CryptoServiceProvider())
             {
-                var bs = Encoding.UTF8.GetBytes(str);
+                var bs = _encoding.GetBytes(str);
                 bs = md5.ComputeHash(bs);
+                return BsToStr(bs);
+            }
+        }
+
+        /// <summary>
+        /// 获取md5
+        /// </summary>
+        /// <param name="_bs"></param>
+        /// <returns></returns>
+        public static string GetMD5(byte[] _bs)
+        {
+            using (var md5 = new MD5CryptoServiceProvider())
+            {
+                var bs = md5.ComputeHash(_bs);
                 return BsToStr(bs);
             }
         }
@@ -55,7 +71,7 @@ namespace Lib.helper
         {
             using (var sha1 = new SHA1CryptoServiceProvider())
             {
-                var bs = Encoding.UTF8.GetBytes(str);
+                var bs = _encoding.GetBytes(str);
                 bs = sha1.ComputeHash(bs);
                 return BsToStr(bs);
             }
@@ -70,7 +86,7 @@ namespace Lib.helper
         {
             using (var Sha256 = new SHA256CryptoServiceProvider())
             {
-                var bs = Encoding.UTF8.GetBytes(str);
+                var bs = _encoding.GetBytes(str);
                 bs = Sha256.ComputeHash(bs);
                 return BsToStr(bs);
             }
@@ -86,8 +102,8 @@ namespace Lib.helper
         {
             using (var hmac_md5 = new HMACMD5())
             {
-                hmac_md5.Key = Encoding.UTF8.GetBytes(password);
-                var bs = hmac_md5.ComputeHash(Encoding.UTF8.GetBytes(str));
+                hmac_md5.Key = _encoding.GetBytes(password);
+                var bs = hmac_md5.ComputeHash(_encoding.GetBytes(str));
                 return BsToStr(bs);
             }
         }
@@ -102,11 +118,82 @@ namespace Lib.helper
         {
             using (var hmac_sha1 = new HMACSHA1())
             {
-                hmac_sha1.Key = Encoding.UTF8.GetBytes(password);
-                var bs = hmac_sha1.ComputeHash(Encoding.UTF8.GetBytes(str));
+                hmac_sha1.Key = _encoding.GetBytes(password);
+                var bs = hmac_sha1.ComputeHash(_encoding.GetBytes(str));
                 return BsToStr(bs);
             }
         }
+
+        #region DES加密解密
+        private static readonly string txtKey = "PatrickpanP=";
+        private static readonly string txtIV = "LiuJineagel=";
+
+        public static string DESEncrypt(string Text, string key) => DESEncrypt(Text, key, key);
+        public static string DESDecrypt(string Text, string key) => DESDecrypt(Text, key, key);
+
+        /// <summary>
+        /// 加密数据
+        /// </summary>
+        public static string DESEncrypt(string Text, string txtKey, string txtIV)
+        {
+            using (var des = new DESCryptoServiceProvider())
+            {
+                byte[] inputByteArray;
+                inputByteArray = _encoding.GetBytes(Text);
+                //des.Key = ASCIIEncoding.ASCII.GetBytes(System.Web.Security.FormsAuthentication.HashPasswordForStoringInConfigFile(sKey, "md5").Substring(0, 8));
+                //des.IV = ASCIIEncoding.ASCII.GetBytes(System.Web.Security.FormsAuthentication.HashPasswordForStoringInConfigFile(sKey, "md5").Substring(0, 8));
+                des.Key = Convert.FromBase64String(txtKey);
+                des.IV = Convert.FromBase64String(txtIV);
+                using (var ms = new MemoryStream())
+                {
+                    using (var cs = new CryptoStream(ms, des.CreateEncryptor(), CryptoStreamMode.Write))
+                    {
+                        cs.Write(inputByteArray, 0, inputByteArray.Length);
+                        cs.FlushFinalBlock();
+                        StringBuilder ret = new StringBuilder();
+                        foreach (byte b in ms.ToArray())
+                        {
+                            ret.AppendFormat("{0:X2}", b);
+                        }
+                        return ret.ToString();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 解密数据
+        /// </summary>
+        public static string DESDecrypt(string Text, string txtKey, string txtIV)
+        {
+            using (var des = new DESCryptoServiceProvider())
+            {
+                int len;
+                len = Text.Length / 2;
+                byte[] inputByteArray = new byte[len];
+                int x, i;
+                for (x = 0; x < len; x++)
+                {
+                    i = Convert.ToInt32(Text.Substring(x * 2, 2), 16);
+                    inputByteArray[x] = (byte)i;
+                }
+                //des.Key = ASCIIEncoding.ASCII.GetBytes(System.Web.Security.FormsAuthentication.HashPasswordForStoringInConfigFile(sKey, "md5").Substring(0, 8));
+                //des.IV = ASCIIEncoding.ASCII.GetBytes(System.Web.Security.FormsAuthentication.HashPasswordForStoringInConfigFile(sKey, "md5").Substring(0, 8));
+                des.Key = Convert.FromBase64String(txtKey);
+                des.IV = Convert.FromBase64String(txtIV);
+                using (var ms = new MemoryStream())
+                {
+                    using (var cs = new CryptoStream(ms, des.CreateDecryptor(), CryptoStreamMode.Write))
+                    {
+                        cs.Write(inputByteArray, 0, inputByteArray.Length);
+                        cs.FlushFinalBlock();
+                        return _encoding.GetString(ms.ToArray());
+                    }
+                }
+            }
+        }
+
+        #endregion
 
         //AES密钥向量
         private static readonly byte[] _aeskeys = new byte[] {
@@ -132,9 +219,9 @@ namespace Lib.helper
             //分组加密算法
             using (SymmetricAlgorithm des = Rijndael.Create())
             {
-                byte[] inputByteArray = Encoding.UTF8.GetBytes(encryptStr);//得到需要加密的字节数组 
-                                                                           //设置密钥及密钥向量
-                des.Key = Encoding.UTF8.GetBytes(encryptKey);
+                byte[] inputByteArray = _encoding.GetBytes(encryptStr);//得到需要加密的字节数组 
+                                                                       //设置密钥及密钥向量
+                des.Key = _encoding.GetBytes(encryptKey);
                 des.IV = _aeskeys;
                 byte[] cipherBytes = null;
                 using (MemoryStream ms = new MemoryStream())
@@ -144,8 +231,6 @@ namespace Lib.helper
                         cs.Write(inputByteArray, 0, inputByteArray.Length);
                         cs.FlushFinalBlock();
                         cipherBytes = ms.ToArray();//得到加密后的字节数组
-                        cs.Close();
-                        ms.Close();
                     }
                 }
                 return Convert.ToBase64String(cipherBytes);
@@ -171,7 +256,7 @@ namespace Lib.helper
 
             using (SymmetricAlgorithm des = Rijndael.Create())
             {
-                des.Key = Encoding.UTF8.GetBytes(decryptKey);
+                des.Key = _encoding.GetBytes(decryptKey);
                 des.IV = _aeskeys;
                 byte[] decryptBytes = new byte[cipherText.Length];
                 using (MemoryStream ms = new MemoryStream(cipherText))
@@ -179,11 +264,9 @@ namespace Lib.helper
                     using (CryptoStream cs = new CryptoStream(ms, des.CreateDecryptor(), CryptoStreamMode.Read))
                     {
                         cs.Read(decryptBytes, 0, decryptBytes.Length);
-                        cs.Close();
-                        ms.Close();
                     }
                 }
-                return Encoding.UTF8.GetString(decryptBytes).Replace("\0", "");//将字符串后尾的'\0'去掉}
+                return _encoding.GetString(decryptBytes).Replace("\0", "");//将字符串后尾的'\0'去掉}
             }
 
         }

@@ -1,5 +1,4 @@
-﻿using Autofac;
-using Dal.User;
+﻿using Dal.User;
 using Hiwjcn.Core.Infrastructure.Common;
 using Hiwjcn.Core.Infrastructure.User;
 using Lib.helper;
@@ -17,6 +16,8 @@ using WebLogic.Dal.User;
 using WebLogic.Model.User;
 using Lib.ioc;
 using Lib.infrastructure;
+using Lib.mvc.user;
+using Lib.infrastructure.entity;
 
 namespace Bll.User
 {
@@ -41,17 +42,6 @@ namespace Bll.User
             this._RolePermissionDal = new RolePermissionDal();
         }
 
-        public override string CheckModel(UserModel model)
-        {
-            if (model == null) { return "对象为空"; }
-            if (!ValidateHelper.IsPlumpString(model.NickName)) { return "用户昵称不能为空"; }
-            if (!(model.Email?.IsEmail() ?? false)) { return "用户邮箱不正确"; }
-            if (!ValidateHelper.IsPlumpString(model.PassWord)) { return "用户密码为空"; }
-            if (model.Money < 0) { return "账户余额不能小于0"; }
-
-            return string.Empty;
-        }
-
         /// <summary>
         /// 搜索
         /// </summary>
@@ -60,63 +50,57 @@ namespace Bll.User
         /// <param name="pageSize"></param>
         /// <returns></returns>
         public PagerData<UserModel> GetPagerList(
-            string name = null, string sex = null, string email = null, string keywords = null,
+            string name = null, int? sex = null, string email = null, string keywords = null,
             bool LoadRoleAndPrivilege = false,
             int page = 1, int pageSize = 20)
         {
-            string key = string.Format("SearchUserList:name:{0},sex:{1},email:{2},keywords:{3},page:{4},pagesize:{5},"
-                + "LoadRoleAndPrivilege:{6}",
-                name, sex, email, keywords, page, pageSize, LoadRoleAndPrivilege);
 
-            return Cache(key, () =>
+            var data = new PagerData<UserModel>();
+
+            #region 查询
+            _UserDal.PrepareIQueryable((query) =>
             {
-                var data = new PagerData<UserModel>();
-
-                #region 查询
-                _UserDal.PrepareIQueryable((query) =>
+                if (ValidateHelper.IsPlumpString(name))
                 {
-                    if (ValidateHelper.IsPlumpString(name))
-                    {
-                        query = query.Where(x => x.NickName == name);
-                        data.UrlParams["name"] = name;
-                    }
-
-                    if (ValidateHelper.IsPlumpString(sex))
-                    {
-                        query = query.Where(x => x.Sex == sex);
-                        data.UrlParams["sex"] = name;
-                    }
-
-                    if (ValidateHelper.IsPlumpString(email))
-                    {
-                        query = query.Where(x => x.Email == email);
-                        data.UrlParams["email"] = name;
-                    }
-
-                    if (ValidateHelper.IsPlumpString(keywords))
-                    {
-                        query = query.Where(x =>
-                            x.NickName.Contains(keywords)
-                            || x.Phone.Contains(keywords)
-                            || x.Email.Contains(keywords)
-                            || x.Introduction.Contains(keywords)
-                            || x.QQ.Contains(keywords));
-                        data.UrlParams["q"] = keywords;
-                    }
-
-                    data.ItemCount = query.Count();
-                    data.DataList = query.OrderByDescending(x => x.UserID).QueryPage(page, pageSize).ToList();
-                    return true;
-                });
-                #endregion
-
-                if (ValidateHelper.IsPlumpList(data?.DataList) && LoadRoleAndPrivilege)
-                {
-                    data.DataList = GetRolesForUserList(data.DataList);
+                    query = query.Where(x => x.NickName == name);
+                    data.UrlParams["name"] = name;
                 }
 
-                return data;
+                if (sex != null)
+                {
+                    query = query.Where(x => x.Sex == sex);
+                    data.UrlParams["sex"] = name;
+                }
+
+                if (ValidateHelper.IsPlumpString(email))
+                {
+                    query = query.Where(x => x.Email == email);
+                    data.UrlParams["email"] = name;
+                }
+
+                if (ValidateHelper.IsPlumpString(keywords))
+                {
+                    query = query.Where(x =>
+                        x.NickName.Contains(keywords)
+                        || x.Phone.Contains(keywords)
+                        || x.Email.Contains(keywords)
+                        || x.Introduction.Contains(keywords)
+                        || x.QQ.Contains(keywords));
+                    data.UrlParams["q"] = keywords;
+                }
+
+                data.ItemCount = query.Count();
+                data.DataList = query.OrderByDescending(x => x.IID).QueryPage(page, pageSize).ToList();
+                return true;
             });
+            #endregion
+
+            if (ValidateHelper.IsPlumpList(data?.DataList) && LoadRoleAndPrivilege)
+            {
+                data.DataList = GetRolesForUserList(data.DataList);
+            }
+
+            return data;
         }
 
         /// <summary>
@@ -124,15 +108,11 @@ namespace Bll.User
         /// </summary>
         /// <param name="userID"></param>
         /// <returns></returns>
-        public byte[] GetUserImage(int userID)
+        public byte[] GetUserImage(string userID)
         {
-            string key = "userbll.getuserimage:" + userID;
-            return Cache(key, () =>
-            {
-                var b = _UserDal.ReadUserImage(userID);
-                //最好在这里压缩一下
-                return b;
-            });
+            var b = _UserDal.ReadUserImage(userID);
+            //最好在这里压缩一下
+            return b;
         }
 
         /// <summary>
@@ -140,31 +120,9 @@ namespace Bll.User
         /// </summary>
         /// <param name="userID"></param>
         /// <returns></returns>
-        public UserModel GetByID(int userID)
+        public UserModel GetByID(string userID)
         {
-            var list = GetUserByIDS(userID);
-            if (ValidateHelper.IsPlumpList(list))
-            {
-                return list[0];
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// 通过id获取多个user对象
-        /// </summary>
-        /// <param name="ids"></param>
-        /// <returns></returns>
-        public List<UserModel> GetUserByIDS(params int[] ids)
-        {
-            if (ids == null) { return null; }
-            ids = ids.Where(x => x > 0).ToArray();
-            if (!ValidateHelper.IsPlumpList(ids)) { return null; }
-            string key = "userbll.userbyids:" + string.Join(",", ids);
-            return Cache(key, () =>
-            {
-                return _UserDal.GetList(x => ids.Contains(x.UserID));
-            });
+            return this._UserDal.GetFirst(x => x.UID == userID);
         }
 
         /// <summary>
@@ -173,37 +131,15 @@ namespace Bll.User
         /// <returns></returns>
         public List<UserCountGroupBySex> GetCountGroupBySex()
         {
-            string key = "userbll.GetCountGroupBySex";
-            return Cache(key, () =>
+            List<UserCountGroupBySex> data = null;
+            _UserDal.PrepareIQueryable((query) =>
             {
-                List<UserCountGroupBySex> data = null;
-                _UserDal.PrepareIQueryable((query) =>
-                {
-                    data = query.GroupBy(x => x.Sex)
-                        .Select(x => new UserCountGroupBySex() { Sex = x.Key, Count = x.Count() })
-                        .OrderBy(x => x.Sex).Skip(0).Take(4).ToList();
-
-                    data.ForEach(x =>
-                    {
-                        x.Sex = UserModel.ParseSex(x.Sex);
-                    });
-
-                    return true;
-                });
-                return data;
+                data = query.GroupBy(x => x.Sex)
+                    .Select(x => new UserCountGroupBySex() { Sex = x.Key, Count = x.Count() })
+                    .OrderBy(x => x.Sex).Skip(0).Take(4).ToList();
+                return true;
             });
-        }
-
-        /// <summary>
-        /// 删除用户
-        /// </summary>
-        /// <param name="userID"></param>
-        /// <returns></returns>
-        public string DeleteUser(int userID)
-        {
-            var model = _UserDal.GetByKeys(userID);
-            if (model == null) { return "你要删除的用户不存在"; }
-            return _UserDal.Delete(model) > 0 ? SUCCESS : "删除失败";
+            return data;
         }
 
         /// <summary>
@@ -213,7 +149,7 @@ namespace Bll.User
         /// <param name="file"></param>
         /// <param name="MaxSize"></param>
         /// <returns></returns>
-        public string UpdateUserMask(int userID, HttpPostedFile file, string save_path)
+        public string UpdateUserMask(string userID, HttpPostedFile file, string save_path)
         {
             if (file == null || file.InputStream == null)
             {
@@ -246,27 +182,7 @@ namespace Bll.User
             #region 把文件保存到云存储
             var file_url = string.Empty;
             var file_name = string.Empty;
-            var upfileservice = AppContext.GetObject<IUpFileService>();
-            var qiniumsg = upfileservice.UploadFileAfterCheckRepeat(new FileInfo(model.FilePath), userID, ref file_url, ref file_name);
-            if (ValidateHelper.IsPlumpString(qiniumsg)) { errmsg.Add(qiniumsg); }
-            else
-            {
-                if (ValidateHelper.IsPlumpString(file_url))
-                {
-                    //保存文件地址到数据库
-                    var updatemsg = UpdateSingleEntity(x => x.UserID == userID, (ref UserModel entity) =>
-                    {
-                        entity.UserImg = file_url;
-                        return string.Empty;
-                    });
-                    if (ValidateHelper.IsPlumpString(updatemsg)) { errmsg.Add(updatemsg); }
-                }
-                else
-                {
-                    errmsg.Add("文件地址为空");
-                }
-            }
-            return errmsg.Count() == 0 ? SUCCESS : string.Join(",", errmsg);
+            return SUCCESS;
             #endregion
         }
 
@@ -282,7 +198,7 @@ namespace Bll.User
         /// <returns></returns>
         public string UpdateUserInfo(UserModel updateModel)
         {
-            var model = _UserDal.GetByKeys(updateModel.UserID);
+            var model = _UserDal.GetByKeys(updateModel.IID);
             if (model == null) { return "用户不存在"; }
 
             model.NickName = updateModel.NickName;
@@ -305,20 +221,19 @@ namespace Bll.User
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        public string UpdateUserPass(int userID, string old_pass, string new_pass, string re_new_pass)
+        public string UpdateUserPass(string userID, string old_pass, string new_pass, string re_new_pass)
         {
             if (!ValidateHelper.IsAllPlumpString(old_pass, new_pass)) { return "请输入旧密码和新密码"; }
             if (new_pass != re_new_pass) { return "两次输入的新密码不相同"; }
 
             string md5pass = UserPassWordEncrypt(old_pass);
-            var model = _UserDal.GetFirst(x => x.UserID == userID && x.PassWord == md5pass);
+            var model = _UserDal.GetFirst(x => x.UID == userID && x.PassWord == md5pass);
             if (model == null) { return "用户不存在"; }
             model.PassWord = UserPassWordEncrypt(new_pass);
 
-            string errinfo = CheckModel(model);
-            if (ValidateHelper.IsPlumpString(errinfo))
+            if (!this.CheckModel(model, out var msg))
             {
-                return errinfo;
+                return msg;
             }
 
             return _UserDal.Update(model) > 0 ? SUCCESS : "修改密码失败";
@@ -331,7 +246,7 @@ namespace Bll.User
         /// <returns></returns>
         private string UserPassWordEncrypt(string originalPWD)
         {
-            return SecureHelper.GetMD5(originalPWD);
+            return originalPWD.ToMD5().ToLower();
         }
 
         /// <summary>
@@ -342,8 +257,9 @@ namespace Bll.User
         /// <returns></returns>
         public string CreateToken(UserModel model)
         {
-            return Com.GetPassKey($"{model.UserID}/{model.UID}/{model.PassWord}");
+            return Com.GetPassKey($"{model.IID}/{model.UID}/{model.PassWord}");
         }
+
         private UserModel FindValidLoginUser(string email, ref string msg)
         {
             var loginemail = ConvertHelper.GetString(email).Trim().ToLower();
@@ -536,21 +452,21 @@ namespace Bll.User
         /// <returns></returns>
         private List<UserModel> GetRolesForUserList(List<UserModel> list)
         {
-            var useridlist = list.Select(x => x.UserID).ToArray();
+            var useridlist = list.Select(x => x.UID).ToArray();
 
             //读取角色
             var userrolemaplist = _UserRoleDal.GetList(x => useridlist.Contains(x.UserID));
             if (ValidateHelper.IsPlumpList(userrolemaplist))
             {
                 var roleidlist = userrolemaplist.Select(x => x.RoleID).Distinct().ToArray();
-                var rolelist = _RoleDal.GetList(x => roleidlist.Contains(x.RoleID));
+                var rolelist = _RoleDal.GetList(x => roleidlist.Contains(x.UID));
                 if (ValidateHelper.IsPlumpList(rolelist))
                 {
                     foreach (var model in list)
                     {
-                        var myroleidlist = userrolemaplist.Where(x => x.UserID == model.UserID).Select(x => x.RoleID).Distinct().ToArray();
+                        var myroleidlist = userrolemaplist.Where(x => x.UserID == model.UID).Select(x => x.RoleID).Distinct().ToArray();
                         if (!ValidateHelper.IsPlumpList(myroleidlist)) { continue; }
-                        model.RoleModelList = rolelist.Where(x => myroleidlist.Contains(x.RoleID)).ToList();
+                        model.RoleModelList = rolelist.Where(x => myroleidlist.Contains(x.UID)).Select(x => (RoleEntityBase)x).ToList();
                     }
                 }
             }
@@ -565,14 +481,13 @@ namespace Bll.User
         /// <returns></returns>
         private UserModel LoadAllPermissionForUser(UserModel model)
         {
-            if (model == null || model.UserID <= 0) { throw new Exception("用户对象为空，无法为其获取权限"); }
-            model.RoleList = new List<int>();
+            model.RoleList = new List<string>();
             model.PermissionList = new List<string>();
 
             _UserDal.PrepareSession(db =>
             {
-                var maprole = db.Set<UserRoleModel>().Where(x => x.UserID == model.UserID).Select(x => x.RoleID);
-                var deftrole = db.Set<RoleModel>().Where(x => x.AutoAssignRole == "true").Select(x => x.RoleID);
+                var maprole = db.Set<UserRoleModel>().Where(x => x.UserID == model.UID).Select(x => x.RoleID);
+                var deftrole = db.Set<RoleModel>().Where(x => x.AutoAssignRole > 0).Select(x => x.UID);
 
                 var rolepermissionlist = db.Set<RolePermissionModel>()
                 .Where(x => maprole.Contains(x.RoleID) || deftrole.Contains(x.RoleID))
@@ -589,5 +504,32 @@ namespace Bll.User
             return model;
         }
 
+        /// <summary>
+        /// 获取用户权限
+        /// </summary>
+        /// <param name="loginuser"></param>
+        /// <returns></returns>
+        public List<string> FetchPermission(LoginUserInfo loginuser)
+        {
+            var RoleList = new List<string>();
+            var PermissionList = new List<string>();
+            _UserDal.PrepareSession(db =>
+            {
+                var maprole = db.Set<UserRoleModel>().Where(x => x.UserID == loginuser.UserID).Select(x => x.RoleID);
+                var deftrole = db.Set<RoleModel>().Where(x => x.AutoAssignRole > 0).Select(x => x.UID);
+
+                var rolepermissionlist = db.Set<RolePermissionModel>()
+                .Where(x => maprole.Contains(x.RoleID) || deftrole.Contains(x.RoleID))
+                .Select(x => new { role = x.RoleID, permission = x.PermissionID }).ToList();
+
+                if (ValidateHelper.IsPlumpList(rolepermissionlist))
+                {
+                    RoleList.AddRange(rolepermissionlist.Select(x => x.role).Distinct());
+                    PermissionList.AddRange(rolepermissionlist.Select(x => x.permission).Distinct());
+                }
+                return true;
+            });
+            return PermissionList;
+        }
     }
 }

@@ -4,13 +4,11 @@
 @using Lib.helper;
 @using Bll;
 @using Model.User;
-@using Model.Post;
 @using Hiwjcn.Web.Models.User;
 @{
     Layout = null;
 
-    var model = ViewData["model"] as MeViewModel;
-    if (model == null) { model = new MeViewModel(); }
+    var model = GetModel<MeViewModel>("model");
     if (model.User == null) { model.User = new UserModel(); }
 }
 
@@ -42,7 +40,7 @@
                 <div class="box">
                     <h1 style="margin:0;padding:0;">@(model.User.NickName)</h1>
                     <div style="padding:10px 0;">
-                        <img src="/user/usermask/@(model.User.UserID)/" alt="" style="display:block;width:100%;height:auto;" />
+                        <img src="/user/usermask/@(model.User.UID)/" alt="" style="display:block;width:100%;height:auto;" />
                     </div>
                     <div class="well">@(model.User.Introduction)</div>
                 </div>
@@ -52,7 +50,7 @@
                         <tbody>
                             <tr>
                                 <td>性别</td>
-                                <td>@(model.User.Sex == "1" ? "男" : "女")</td>
+                                <td>@(model.User.Sex==1 ? "男" : "女")</td>
                             </tr>
                             <tr>
                                 <td>电话</td>

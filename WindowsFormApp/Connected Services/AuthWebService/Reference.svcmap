@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ReferenceGroup xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" ID="1fa53a5b-e986-4456-b53b-80e286c420e9" xmlns="urn:schemas-microsoft-com:xml-wcfservicemap">
+  <ClientOptions>
+    <GenerateAsynchronousMethods>false</GenerateAsynchronousMethods>
+    <GenerateTaskBasedAsynchronousMethod>true</GenerateTaskBasedAsynchronousMethod>
+    <EnableDataBinding>true</EnableDataBinding>
+    <ExcludedTypes />
+    <ImportXmlTypes>false</ImportXmlTypes>
+    <GenerateInternalTypes>false</GenerateInternalTypes>
+    <GenerateMessageContracts>false</GenerateMessageContracts>
+    <NamespaceMappings />
+    <CollectionMappings />
+    <GenerateSerializableTypes>true</GenerateSerializableTypes>
+    <Serializer>Auto</Serializer>
+    <UseSerializerForFaults>true</UseSerializerForFaults>
+    <ReferenceAllAssemblies>true</ReferenceAllAssemblies>
+    <ReferencedAssemblies />
+    <ReferencedDataContractTypes />
+    <ServiceContractMappings />
+  </ClientOptions>
+  <MetadataSources>
+    <MetadataSource Address="http://localhost:59840/Service/AuthApiService.svc" Protocol="http" SourceId="1" />
+  </MetadataSources>
+  <Metadata>
+    <MetadataFile FileName="AuthApiService.wsdl" MetadataType="Wsdl" ID="0aa70a72-3774-40bc-b193-a557a31e82e7" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?wsdl" />
+    <MetadataFile FileName="AuthApiService.xsd" MetadataType="Schema" ID="d23868a6-4077-4362-b3c3-46a36eebc876" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd3" />
+    <MetadataFile FileName="AuthApiService1.xsd" MetadataType="Schema" ID="325d1eec-67f5-48e9-ae5e-5b178c4c4e1d" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd2" />
+    <MetadataFile FileName="AuthApiService2.xsd" MetadataType="Schema" ID="2f2e9958-6e00-4edc-baf4-f05b0f332751" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd0" />
+    <MetadataFile FileName="AuthApiService3.xsd" MetadataType="Schema" ID="37504372-cc7d-44d1-a87e-715fbe850ff1" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd5" />
+    <MetadataFile FileName="AuthApiService4.xsd" MetadataType="Schema" ID="8e100bc4-db40-484a-84f8-a6e323c08a77" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd4" />
+    <MetadataFile FileName="AuthApiService.disco" MetadataType="Disco" ID="2b2dc8e4-d58c-47a7-ad41-11164f3d1e61" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?disco" />
+    <MetadataFile FileName="AuthApiService5.xsd" MetadataType="Schema" ID="362288d3-c968-40e1-8b70-92b699f5c108" SourceId="1" SourceUrl="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd1" />
+  </Metadata>
+  <Extensions>
+    <ExtensionFile FileName="configuration91.svcinfo" Name="configuration91.svcinfo" />
+    <ExtensionFile FileName="configuration.svcinfo" Name="configuration.svcinfo" />
+  </Extensions>
+</ReferenceGroup>

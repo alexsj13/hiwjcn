@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Web;
+using System.Web.Mvc;
 using Lib.extension;
+using Lib.mvc;
 using System.Diagnostics;
+using System.Runtime.Serialization;
 
 namespace Lib.helper
 {
@@ -12,23 +15,30 @@ namespace Lib.helper
     /// 分页用的数据模型，请不要返回空对象
     /// </summary>
     /// <typeparam name="T"></typeparam>
+    [Serializable]
+    [DataContract]
     public class PagerData<T> : PagerData<T, object> { }
 
     /// <summary>
     /// 分页用的数据模型，请不要返回空对象
     /// </summary>
+    [Serializable]
+    [DataContract]
     public class PagerData<T, EXT>
     {
+        [Obsolete("不建议手动维护")]
         public readonly Dictionary<string, string> UrlParams = new Dictionary<string, string>();
 
         /// <summary>
         /// 数据库记录总数
         /// </summary>
+        [DataMember]
         public int ItemCount { get; set; }
 
         /// <summary>
         /// 总页数，通过itemcount和pagesize计算出
         /// </summary>
+        [DataMember]
         public int PageCount
         {
             get
@@ -41,35 +51,46 @@ namespace Lib.helper
         /// <summary>
         /// 每页显示数量
         /// </summary>
+        [DataMember]
         public int PageSize { get; set; }
 
         /// <summary>
         /// 当前页码
         /// </summary>
+        [DataMember]
         public int Page { get; set; }
 
         /// <summary>
         /// 查出来的数据列表
         /// </summary>
+        [DataMember]
         public List<T> DataList { get; set; }
 
         /// <summary>
         /// 额外数据
         /// </summary>
+        [DataMember]
         public EXT ExtData { get; set; }
 
         /// <summary>
         /// 是否成功
         /// </summary>
+        [DataMember]
         public bool Success { get; set; } = true;
+
+        /// <summary>
+        /// 获取分页
+        /// </summary>
+        public string GetPagerHtml(Controller controller, string pageKey, int currentPage, int pageSize)
+        {
+            var url = controller.RouteData.ActionUrl();
+            return this.GetPagerHtml(url, pageKey, currentPage, pageSize, HttpContext.Current);
+        }
 
         /// <summary>
         /// 分页控件的html代码
         /// </summary>
-        public string GetPagerHtml(
-            string base_url, string pageKey,
-            int currentPage, int pageSize,
-            HttpContext _context = null)
+        public string GetPagerHtml(string base_url, string pageKey, int currentPage, int pageSize, HttpContext _context = null)
         {
             if (!ValidateHelper.IsPlumpDict(this.UrlParams))
             {
@@ -92,7 +113,7 @@ namespace Lib.helper
                 url: base_url,
                 pageKey: pageKey,
                 urlParams: this.UrlParams,
-                itemCount: ItemCount,
+                itemCount: this.ItemCount,
                 page: currentPage,
                 pageSize: pageSize);
         }
@@ -232,9 +253,6 @@ namespace Lib.helper
         /// <summary>
         /// 计算总页数
         /// </summary>
-        /// <param name="item_count"></param>
-        /// <param name="page_size"></param>
-        /// <returns></returns>
         public static int GetPageCount(int item_count, int page_size)
         {
             if (item_count <= 0) { return 0; }
@@ -245,15 +263,12 @@ namespace Lib.helper
         /// <summary>
         /// 计算mysql 的limit参数
         /// </summary>
-        /// <param name="current_page"></param>
-        /// <param name="page_size"></param>
-        /// <returns></returns>
-        public static (int skip, int take) GetQueryRange(int current_page, int page_size)
+        public static (int skip, int take) GetQueryRange(int page, int page_size)
         {
-            if (current_page < 1) { throw new Exception("页码不能小于1"); }
+            if (page < 1) { throw new Exception("页码不能小于1"); }
             if (page_size < 1) { throw new Exception("pagesize不能小于1"); }
 
-            var skip = (current_page - 1) * page_size;
+            var skip = (page - 1) * page_size;
             var take = page_size;
 
             return (skip, take);

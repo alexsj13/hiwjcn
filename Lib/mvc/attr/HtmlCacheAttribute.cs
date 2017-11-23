@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Mvc;
 using Lib.extension;
+using Lib.ioc;
+using System.Web;
 
 namespace Lib.mvc.attr
 {
@@ -33,18 +35,12 @@ namespace Lib.mvc.attr
         private string URL { get; set; }
 
         /// <summary>
-        /// 缓存组件
-        /// </summary>
-        private ICacheProvider cache { get; set; }
-
-        /// <summary>
         /// 缓存页面html，时间是分钟
         /// </summary>
         /// <param name="minute"></param>
         public HtmlCacheAttribute(int minute = 5)
         {
             this.Minute = minute;
-            cache = CacheManager.CacheProvider();
         }
 
         #region 执行action前，尝试读取缓存html
@@ -54,34 +50,28 @@ namespace Lib.mvc.attr
         /// <param name="filterContext"></param>
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
-            try
-            {
-                //URL作为key
-                URL = ConvertHelper.GetString(filterContext.HttpContext.Request.Url);
+            //URL作为key
+            URL = ConvertHelper.GetString(filterContext.HttpContext.Request.Url);
 
-                var data = cache.Get<string>(URL);
+            var data = AppContext.Scope(x => x.Resolve_<ICacheProvider>().Get<string>(URL));
 
-                if (data.Success)
-                {
-                    ReadFromCache = true;
-                    filterContext.Result = new ContentResult()
-                    {
-                        Content = data.Result,
-                        ContentEncoding = Encoding.UTF8,
-                        ContentType = "text/html"
-                    };
-                    return;
-                }
-                else
-                {
-                    //attribute好像只实例化了一次，这里必须手动设置，不然会用上一次的值
-                    ReadFromCache = false;
-                }
-            }
-            catch (Exception e)
+            if (data.Success)
             {
-                e.AddErrorLog();
+                ReadFromCache = true;
+                filterContext.Result = new ContentResult()
+                {
+                    Content = data.Result,
+                    ContentEncoding = Encoding.UTF8,
+                    ContentType = "text/html"
+                };
+                return;
             }
+            else
+            {
+                //attribute好像只实例化了一次，这里必须手动设置，不然会用上一次的值
+                ReadFromCache = false;
+            }
+
             base.OnActionExecuting(filterContext);
         }
         #endregion
@@ -101,37 +91,35 @@ namespace Lib.mvc.attr
         /// <param name="filterContext"></param>
         public override void OnResultExecuted(ResultExecutedContext filterContext)
         {
-            try
+            //如果不是从缓存中读取的就添加到缓存
+            if (!ReadFromCache)
             {
-                //如果不是从缓存中读取的就添加到缓存
-                if (!ReadFromCache)
+                var context = HttpContext.Current;
+                //获取view的名称
+                string viewName = filterContext.RouteData.GetRequiredString("action");
+                viewName = ConvertHelper.GetString(viewName);
+                using (var sw = new StringWriter())
                 {
-                    //获取view的名称
-                    string viewName = filterContext.RouteData.GetRequiredString("action");
-                    viewName = ConvertHelper.GetString(viewName);
-                    using (var sw = new StringWriter())
-                    {
-                        //找到view
-                        var view = System.Web.Mvc.ViewEngines.Engines.FindView(
-                            filterContext.Controller.ControllerContext, viewName, string.Empty).View;
-                        //初始化view上下文
-                        var vc = new ViewContext(
-                            filterContext.Controller.ControllerContext,
-                            view,
-                            filterContext.Controller.ViewData, filterContext.Controller.TempData,
-                            sw);
-                        //渲染view
-                        view.Render(vc, sw);
-                        //获取渲染后的html
-                        var html = sw.ToString();
-                        cache.Set(URL, html, TimeSpan.FromMinutes(Minute));
-                    }
+                    //找到view
+                    var view = System.Web.Mvc.ViewEngines.Engines.FindView(
+                        filterContext.Controller.ControllerContext, viewName, string.Empty).View;
+                    //初始化view上下文
+                    var vc = new ViewContext(
+                        filterContext.Controller.ControllerContext,
+                        view,
+                        filterContext.Controller.ViewData,
+                        filterContext.Controller.TempData,
+                        sw);
+                    //渲染view
+                    view.Render(vc, sw);
+                    //获取渲染后的html
+                    var html = sw.ToString();
+                    //设置缓存
+                    var cache = context.AutofacRequestLifetimeScope().Resolve_<ICacheProvider>();
+                    cache.Set(URL, html, TimeSpan.FromMinutes(Minute));
                 }
             }
-            catch (Exception e)
-            {
-                e.AddErrorLog();
-            }
+
             base.OnResultExecuted(filterContext);
         }
         #endregion

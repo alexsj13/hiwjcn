@@ -5,6 +5,7 @@ using System.Text;
 using Dal;
 using WebLogic.Model.Page;
 using Lib.data;
+using Lib.data.ef;
 
 namespace WebLogic.Dal.Page
 {

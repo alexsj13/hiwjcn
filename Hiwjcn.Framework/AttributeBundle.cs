@@ -3,10 +3,18 @@ using Hiwjcn.Bll.Sys;
 using Hiwjcn.Core.Model.Sys;
 using Lib.extension;
 using Lib.helper;
+using Lib.events;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Web.Mvc;
+using Lib.ioc;
+using Lib.cache;
+using Lib.mvc;
+using Hiwjcn.Framework.Actors;
+using System.Web;
+using Akka.Actor;
+using Lib.distributed.akka;
 
 namespace Hiwjcn.Framework
 {
@@ -33,9 +41,25 @@ namespace Hiwjcn.Framework
         {
             var nav_key = "nav_list";
 
-            var bll = new CategoryBll() { UseCache = UseCache };
+            AppContext.Scope(x =>
+            {
+                if (UseCache)
+                {
+                    var cache = x.Resolve_<ICacheProvider>();
+                    var data = cache.GetOrSet("nav_list_cache".WithCacheKeyPrefix(), () =>
+                    {
+                        return new CategoryBll().GetCategoryByType(nav_key);
+                    }, TimeSpan.FromMinutes(3));
+                    filterContext.Controller.ViewData[nav_key] = data;
+                }
+                else
+                {
+                    var data = new CategoryBll().GetCategoryByType(nav_key);
+                    filterContext.Controller.ViewData[nav_key] = data;
+                }
 
-            filterContext.Controller.ViewData[nav_key] = bll.GetCategoryByType(nav_key, maxCount: 500);
+                return true;
+            });
 
             base.OnActionExecuting(filterContext);
         }
@@ -46,22 +70,6 @@ namespace Hiwjcn.Framework
     /// </summary>
     public class RequestLogAttribute : ActionFilterAttribute
     {
-        /// <summary>
-        /// form和querystring转换为字符串
-        /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
-        private string NameValueToParamString(NameValueCollection data)
-        {
-            var dict = new Dictionary<string, string>();
-            for (var i = 0; i < data.Keys.Count; ++i)
-            {
-                var key = data.Keys[i];
-                dict[key] = data[key];
-            }
-            return Com.DictToUrlParams(dict);
-        }
-
         private DateTime start { get; set; }
 
         public override void OnActionExecuting(ActionExecutingContext filterContext)
@@ -74,26 +82,30 @@ namespace Hiwjcn.Framework
         {
             try
             {
+                var context = HttpContext.Current;
+
                 var model = new ReqLogModel();
 
-                model.ReqTime = (DateTime.Now - start).TotalSeconds;
+                model.ReqTime = (DateTime.Now - start).TotalMilliseconds;
                 model.ReqID = Com.GetRequestID();
 
-                model.ReqRefURL = ConvertHelper.GetString(filterContext.HttpContext.Request.UrlReferrer);
-                model.ReqURL = ConvertHelper.GetString(filterContext.HttpContext.Request.Url);
+                model.ReqRefURL = ConvertHelper.GetString(context.Request.UrlReferrer);
+                model.ReqURL = ConvertHelper.GetString(context.Request.Url);
 
-                model.AreaName = ConvertHelper.GetString(filterContext.RouteData.Values["Area"]);
-                model.ControllerName = ConvertHelper.GetString(filterContext.RouteData.Values["Controller"]);
-                model.ActionName = ConvertHelper.GetString(filterContext.RouteData.Values["Action"]);
+                var route = filterContext.RouteData.GetA_C_A();
 
-                model.ReqMethod = ConvertHelper.GetString(filterContext.HttpContext.Request.HttpMethod);
+                model.AreaName = route.area?.ToLower();
+                model.ControllerName = route.controller?.ToLower();
+                model.ActionName = route.action?.ToLower();
 
-                model.PostParams = NameValueToParamString(filterContext.HttpContext.Request.Form);
-                model.GetParams = NameValueToParamString(filterContext.HttpContext.Request.QueryString);
+                model.ReqMethod = filterContext.HttpContext.Request.HttpMethod;
 
-                model.UpdateTime = DateTime.Now;
+                model.PostParams = context.Request.Form.ToDict().ToUrlParam();
+                model.GetParams = context.Request.QueryString.ToDict().ToUrlParam();
 
-                new ReqLogBll().AddLog(model);
+                ActorsManager<LogRequestActor>.Instance.DefaultClient.Tell(model);
+
+                //Com.Range(3).ForEach_(x => AkkaHelper<TestActor>.Tell($"测试actor内存占用{DateTime.Now}"));
             }
             catch (Exception e)
             {

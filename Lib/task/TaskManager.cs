@@ -8,6 +8,7 @@ using Quartz.Impl.Matchers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace Lib.task
 {
@@ -16,14 +17,11 @@ namespace Lib.task
     /// </summary>
     public static class TaskManager
     {
-        public static string GetTriggerState(TriggerState state)
-        {
-            return state.ToString();
-        }
-
         private static readonly object locker = new object();
 
         private static IScheduler manager = null;
+
+        public static IScheduler TaskScheduler { get => manager ?? throw new Exception("job容器没有生成"); }
 
         #region 获取任务的信息
         /// <summary>
@@ -54,10 +52,10 @@ namespace Lib.task
                     job.TriggerGroup = trigger.Key.Group;
 
                     //trigger information
-                    job.StartTime = trigger.StartTimeUtc.DateTime;
-                    job.PreTriggerTime = trigger.GetPreviousFireTimeUtc()?.DateTime;
-                    job.NextTriggerTime = trigger.GetNextFireTimeUtc()?.DateTime;
-                    job.JobStatus = GetTriggerState(manager.GetTriggerState(trigger.Key));
+                    job.StartTime = trigger.StartTimeUtc.LocalDateTime;
+                    job.PreTriggerTime = trigger.GetPreviousFireTimeUtc()?.LocalDateTime;
+                    job.NextTriggerTime = trigger.GetNextFireTimeUtc()?.LocalDateTime;
+                    job.JobStatus = manager.GetTriggerState(trigger.Key).GetTriggerState();
 
                     //判断是否在运行
                     job.IsRunning = runningJobs?.Any(x => x.JobDetail.Key == jobKey) ?? false;
@@ -73,8 +71,55 @@ namespace Lib.task
         /// <summary>
         /// 初始化任务，只能调用一次
         /// </summary>
-        public static void StartAllTasks()
+        public static void StartAllTasks(Assembly[] ass)
         {
+            if (ass.Select(x => x.FullName).Distinct().Count() != ass.Count())
+            {
+                throw new Exception("无法启动任务：传入重复的程序集");
+            }
+            var jobs = new List<QuartzJobBase>();
+            foreach (var a in ass)
+            {
+                jobs.AddRange(a.FindJobTypes().Select(x => (QuartzJobBase)Activator.CreateInstance(x)));
+            }
+
+            StartAllTasks(jobs);
+        }
+
+        private static readonly List<QuartzJobBase> _jobs = new List<QuartzJobBase>();
+
+        public static void AddJobManually(QuartzJobBase job)
+        {
+            if (manager != null) { throw new Exception("job容器已经启动，不支持此方法添加新job"); }
+
+            _jobs.Add(job);
+        }
+
+        public static void ClearAllJobsAddedManually() => _jobs.Clear();
+
+        public static void StartAllTasks(List<QuartzJobBase> jobs)
+        {
+            if (_jobs.Count > 0)
+            {
+                jobs.AddRange(_jobs);
+            }
+
+            jobs = jobs.Where(x => x != null && x.AutoStart).ToList();
+            if (!ValidateHelper.IsPlumpList(jobs))
+            {
+                "没有需要启动的任务".AddBusinessInfoLog();
+                return;
+            }
+            //任务检查
+            if (jobs.Select(x => x.Name).Distinct().Count() != jobs.Count())
+            {
+                throw new Exception("注册的任务中存在重名");
+            }
+            if (jobs.Any(x => x.CachedTrigger == null))
+            {
+                throw new Exception("注册的任务中有些Trigger没有定义");
+            }
+
             if (manager != null)
             {
                 throw new Exception("调度对象已经初始化");
@@ -91,43 +136,14 @@ namespace Lib.task
             }
             manager.Clear();
 
-            //从IOC中找到任务，并执行
-            QuartzJobBase[] jobs = null;
-            try
+            foreach (var job in jobs)
             {
-                jobs = AppContext.GetAllObject<QuartzJobBase>();
-            }
-            catch (Exception e)
-            {
-                e.AddErrorLog();
-            }
-            jobs = ConvertHelper.NotNullList(jobs).Where(x => x.AutoStart).ToArray();
-            if (ValidateHelper.IsPlumpList(jobs))
-            {
-                if (jobs.Select(x => x.Name).Distinct().Count() != jobs.Count())
-                {
-                    throw new Exception("注册的任务中存在重名");
-                }
-                if (jobs.Any(x => x.Trigger == null))
-                {
-                    throw new Exception("注册的任务中有些Trigger没有定义");
-                }
-                foreach (var job in jobs)
-                {
-                    var job_to_run = JobBuilder.Create(job.GetType()).WithIdentity(job.Name).Build();
-                    manager.ScheduleJob(job_to_run, job.Trigger);
-                }
-            }
-            else
-            {
-                return;
+                var job_to_run = JobBuilder.Create(job.GetType()).WithIdentity(job.Name).Build();
+                manager.ScheduleJob(job_to_run, job.CachedTrigger);
             }
 
             manager.Start();
         }
-
-        [Obsolete("请调用StartAllTasks")]
-        public static void InitTasks() => StartAllTasks();
 
         /// <summary>
         /// 关闭时是否等待任务完成
@@ -196,6 +212,42 @@ namespace Lib.task
             if (manager.IsStarted)
             {
                 manager.Shutdown(waitForJobsToComplete);
+            }
+        }
+
+        /// <summary>
+        /// 找到任务
+        /// </summary>
+        /// <param name="a"></param>
+        /// <returns></returns>
+        public static Type[] FindJobTypes(this Assembly a)
+        {
+            return a.GetTypes().Where(x => x.IsNormalClass() && x.IsAssignableTo_<QuartzJobBase>()).ToArray();
+        }
+
+        /// <summary>
+        /// 获取状态的描述
+        /// </summary>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        public static string GetTriggerState(this TriggerState state)
+        {
+            switch (state)
+            {
+                case TriggerState.Blocked:
+                    return "阻塞";
+                case TriggerState.Complete:
+                    return "完成";
+                case TriggerState.Error:
+                    return "错误";
+                case TriggerState.None:
+                    return "无状态";
+                case TriggerState.Normal:
+                    return "正常";
+                case TriggerState.Paused:
+                    return "暂停";
+                default:
+                    return state.ToString();
             }
         }
     }

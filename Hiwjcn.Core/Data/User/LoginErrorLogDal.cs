@@ -7,6 +7,7 @@ using Lib.core;
 using Dal;
 using WebLogic.Model.User;
 using Lib.data;
+using Lib.data.ef;
 
 namespace WebLogic.Dal.User
 {

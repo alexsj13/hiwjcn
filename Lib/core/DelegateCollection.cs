@@ -6,7 +6,9 @@ using System.Threading.Tasks;
 
 namespace Lib.core
 {
-    public delegate TResult RefFunc<T, TResult>(ref T arg) where T : class;
+    public delegate TResult RefFunc<T, TResult>(ref T arg);
+    public delegate void RefAction<T>(ref T arg);
+
     public delegate void VoidFunc();
     public delegate void VoidFunc<T>(T arg);
     public delegate void VoidFunc<T1, T2>(T1 arg1, T2 arg2);

@@ -5,6 +5,7 @@ using Model.Category;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Lib.extension;
 
 namespace Bll.Category
 {
@@ -20,7 +21,7 @@ namespace Bll.Category
         /// <summary>
         /// 第一层的父级
         /// </summary>
-        public static readonly int FIRST_PARENT = -1;
+        public static readonly string FIRST_PARENT = string.Empty;
 
         private CategoryDal _CategoryDal { get; set; }
 
@@ -29,27 +30,12 @@ namespace Bll.Category
             this._CategoryDal = new CategoryDal();
         }
 
-        public override string CheckModel(CategoryModel model)
+        public override void CustomCheckModel(ref CategoryModel model, ref List<string> errors)
         {
-            if (model == null) { return "对象为空"; }
-            if (!ValidateHelper.IsPlumpString(model.CategoryName))
-            {
-                return "节点名称不能为空";
-            }
-            if (model.CategoryName.Length > 100) { return "名称最大长度为100"; }
-            if (!ValidateHelper.IsPlumpString(model.CategoryType))
-            {
-                return "类目类型不能为空";
-            }
-            if (model.CategoryParent < FIRST_PARENT)
-            {
-                return "父级参数错误";
-            }
             if (model.CategoryLevel < FIRST_LEVEL)
             {
-                return "层级参数为空";
+                errors.Add("层级参数为空");
             }
-            return string.Empty;
         }
 
         /// <summary>
@@ -58,20 +44,16 @@ namespace Bll.Category
         /// <returns></returns>
         public List<string> GetTop(int count = 1000)
         {
-            var key = GetCacheKey($"{nameof(CategoryBll)},{nameof(GetTop)}:{count}");
-            return Cache(key, () =>
+            List<string> list = null;
+
+            _CategoryDal.PrepareIQueryable((query) =>
             {
-                List<string> list = null;
-
-                _CategoryDal.PrepareIQueryable((query) =>
-                {
-                    list = query.Where(x => x.CategoryType != null && x.CategoryType != string.Empty)
-                        .Select(x => x.CategoryType).Distinct().Take(count).ToList();
-                    return true;
-                });
-
-                return list;
+                list = query.Where(x => x.CategoryType != null && x.CategoryType != string.Empty)
+                    .Select(x => x.CategoryType).Distinct().Take(count).ToList();
+                return true;
             });
+
+            return list;
         }
 
         /// <summary>
@@ -79,15 +61,9 @@ namespace Bll.Category
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public CategoryModel GetCategoryByID(int id)
+        public CategoryModel GetCategoryByID(string id)
         {
-            if (id <= 0) { return null; }
-            var list = GetList(ids: new List<int>() { id }, count: 1);
-            if (ValidateHelper.IsPlumpList(list))
-            {
-                return list[0];
-            }
-            return null;
+            return this._CategoryDal.GetFirst(x => x.UID == id);
         }
 
         /// <summary>
@@ -112,42 +88,36 @@ namespace Bll.Category
         /// <param name="level"></param>
         /// <param name="categoryType"></param>
         /// <returns></returns>
-        public List<CategoryModel> GetList(List<int> ids = null,
-            int parent = -99, int level = -99,
+        public List<CategoryModel> GetList(List<string> ids = null,
+            string parent = null, int level = -99,
             string categoryType = null, int count = 500)
         {
-            ids = ConvertHelper.NotNullList(ids).Where(x => x > 0).ToList();
-            string key = Com.GetCacheKey("categorybll.getlist",
-                string.Join("|", ids), parent.ToString(), level.ToString(), categoryType, count.ToString());
-            return Cache(key, () =>
+            List<CategoryModel> list = null;
+            _CategoryDal.PrepareIQueryable((query) =>
             {
-                List<CategoryModel> list = null;
-                _CategoryDal.PrepareIQueryable((query) =>
+                if (ValidateHelper.IsPlumpList(ids))
                 {
-                    if (ValidateHelper.IsPlumpList(ids))
-                    {
-                        query = query.Where(x => ids.Contains(x.CategoryID));
-                    }
-                    if (parent >= CategoryBll.FIRST_PARENT)
-                    {
-                        query = query.Where(x => x.CategoryParent == parent);
-                    }
-                    if (level >= CategoryBll.FIRST_LEVEL)
-                    {
-                        query = query.Where(x => x.CategoryLevel == level);
-                    }
-                    if (ValidateHelper.IsPlumpString(categoryType))
-                    {
-                        query = query.Where(x => x.CategoryType == categoryType);
-                    }
+                    query = query.Where(x => ids.Contains(x.UID));
+                }
+                if (ValidateHelper.IsPlumpString(parent))
+                {
+                    query = query.Where(x => x.CategoryParent == parent);
+                }
+                if (level >= CategoryBll.FIRST_LEVEL)
+                {
+                    query = query.Where(x => x.CategoryLevel == level);
+                }
+                if (ValidateHelper.IsPlumpString(categoryType))
+                {
+                    query = query.Where(x => x.CategoryType == categoryType);
+                }
 
-                    //读取最大限制
-                    query = query.OrderByDescending(x => x.OrderNum).Skip(0).Take(count);
-                    list = query.ToList();
-                    return true;
-                });
-                return list;
+                //读取最大限制
+                query = query.OrderByDescending(x => x.OrderNum).Skip(0).Take(count);
+                list = query.ToList();
+                return true;
             });
+            return list;
         }
 
         /// <summary>
@@ -157,19 +127,19 @@ namespace Bll.Category
         /// <param name="node"></param>
         /// <param name="SuccessIDSList"></param>
         /// <returns></returns>
-        private bool NodeCanFindRoot(List<CategoryModel> list, CategoryModel node, ref List<int> SuccessIDSList)
+        private bool NodeCanFindRoot(List<CategoryModel> list, CategoryModel node, ref List<string> SuccessIDSList)
         {
             //临时存放id
-            var CurrentNodeID = node.CategoryID;
+            var CurrentNodeID = node.UID;
             int CurrentLevel = node.CategoryLevel;
-            int CurrentParent = node.CategoryParent;
+            var CurrentParent = node.CategoryParent;
             //历遍过的ID
-            var handleredIDS = new List<int>();
+            var handleredIDS = new List<string>();
             //从这个节点一直向上到，直到找到第一级
-            while ((node = list.Where(x => x.CategoryID == CurrentNodeID).FirstOrDefault()) != null)
+            while ((node = list.Where(x => x.UID == CurrentNodeID).FirstOrDefault()) != null)
             {
                 //标记已经处理过的节点
-                handleredIDS.Add(node.CategoryID);
+                handleredIDS.Add(node.UID);
 
                 {
                     //获取层级
@@ -199,21 +169,70 @@ namespace Bll.Category
             return success;
         }
 
+        private bool NodeCanFindRoot(List<CategoryModel> list, ref List<string> SuccessIDSList)
+        {
+            foreach (var node in list)
+            {
+                //临时存放id
+                var CurrentNodeID = node.UID;
+                int CurrentLevel = node.CategoryLevel;
+                var CurrentParent = node.CategoryParent;
+                var CurrentNode = default(CategoryModel);
+                //历遍过的ID
+                var handleredIDS = new List<string>();
+                //从这个节点一直向上到，直到找到第一级
+                while ((CurrentNode = list.Where(x => x.UID == CurrentNodeID).FirstOrDefault()) != null)
+                {
+                    //标记已经处理过的节点
+                    if (handleredIDS.Contains(CurrentNode.UID))
+                    {
+                        $"树存在死循环,type:{CurrentNode.CategoryType}".AddErrorLog("树存在死循环");
+                        return false;
+                    }
+
+                    //获取层级
+                    CurrentLevel = CurrentNode.CategoryLevel;
+                    //获取父级
+                    CurrentParent = CurrentNode.CategoryParent;
+
+                    //如果这个节点已经处理过说明死循环了，立即退出
+                    handleredIDS.Add(CurrentNode.UID);
+
+                    //下一个循环
+                    CurrentNodeID = CurrentNode.CategoryParent;
+                }
+                //如果最后一个节点是第一层并且父级是默认就表示节点无错误
+                bool success = CurrentLevel == CategoryBll.FIRST_LEVEL && CurrentParent == CategoryBll.FIRST_PARENT;
+                //如果是正确的树结构就添加到成功列表
+                if (success)
+                {
+                    SuccessIDSList.AddRange(handleredIDS);
+                }
+                else
+                {
+                    $"树不完整,type:{CurrentNode.CategoryType}".AddErrorLog("树不完整");
+                    return false;
+                }
+            }
+            SuccessIDSList = SuccessIDSList.Distinct().ToList();
+            return true;
+        }
+
         /// <summary>
         /// 分析树的结构，返回错误的节点
         /// </summary>
         public List<CategoryModel> AnalysisTreeStructureAndGetErrorNodesList(List<CategoryModel> list)
         {
             if (!ValidateHelper.IsPlumpList(list)) { return null; }
-            var successIDS = new List<int>();
-            list.OrderByDescending(x => x.CategoryID).ToList().ForEach(node =>
+            var successIDS = new List<string>();
+            list.OrderByDescending(x => x.CreateTime).ToList().ForEach(node =>
             {
                 //如果已经成功的就跳过
-                if (successIDS.Contains(node.CategoryID)) { return; }
+                if (successIDS.Contains(node.UID)) { return; }
                 NodeCanFindRoot(list, node, ref successIDS);
             });
             //错误节点列表
-            return list.Where(x => !successIDS.Contains(x.CategoryID)).ToList();
+            return list.Where(x => !successIDS.Contains(x.UID)).ToList();
         }
 
         /// <summary>
@@ -246,7 +265,7 @@ namespace Bll.Category
             List<CategoryModel> allNodesStore,
             List<CategoryModel> startNodes,
             Func<CategoryModel, bool> finder,
-            ref List<int> findedIDS)
+            ref List<string> findedIDS)
         {
             //条件不成熟就返回
             if (!ValidateHelper.IsPlumpList(allNodesStore) || finder == null || !ValidateHelper.IsPlumpList(startNodes)) { return; }
@@ -255,16 +274,16 @@ namespace Bll.Category
             foreach (var node in startNodes)
             {
                 //如果节点已经被处理过了就跳过，防止死循环
-                if (findedIDS.Contains(node.CategoryID)) { continue; }
+                if (findedIDS.Contains(node.UID)) { continue; }
 
                 //如果方法返回false就中断
                 if (!finder.Invoke(node)) { return; }
 
                 //处理过的节点添加到已处理列表
-                findedIDS.Add(node.CategoryID);
+                findedIDS.Add(node.UID);
 
                 //找到当前节点下的子节点
-                var children = allNodesStore.Where(x => x.CategoryParent == node.CategoryID).ToList();
+                var children = allNodesStore.Where(x => x.CategoryParent == node.UID).ToList();
                 //递归子节点
                 FindAllNodesCore(allNodesStore, children, finder, ref findedIDS);
             }
@@ -282,7 +301,7 @@ namespace Bll.Category
             Func<CategoryModel, bool> finder)
         {
             //已经找过的节点
-            var findedIDS = new List<int>();
+            var findedIDS = new List<string>();
             FindAllNodesCore(allNodesStore, startNodes, finder, ref findedIDS);
         }
 
@@ -291,28 +310,27 @@ namespace Bll.Category
         /// </summary>
         /// <param name="nodeID"></param>
         /// <returns></returns>
-        public string DeleteNodesAndChildren(int nodeID)
+        public string DeleteNodesAndChildren(string nodeID)
         {
-            if (nodeID <= 0) { return "错误的id"; }
-            var root = _CategoryDal.GetFirst(x => x.CategoryID == nodeID);
-            if (root == null) { return "您要删除的节点不存在"; }
+            var root = _CategoryDal.GetFirst(x => x.UID == nodeID);
+            Com.Assert(root, x => x != null, "您要删除的节点不存在");
 
             //获取这棵树下的所有节点
             var allNodesStore = _CategoryDal.GetList(x => x.CategoryType == root.CategoryType);
             if (!ValidateHelper.IsPlumpList(allNodesStore)) { return "读取数据出现错误，请联系管理员"; }
 
             //需要删除的id
-            var DeletedIDS = new List<int>();
+            var DeletedIDS = new List<string>();
             //通过递归获取所有id
             FindAllNodes(allNodesStore, new List<CategoryModel>() { root }, (node) =>
             {
                 //如果已经遍历过这个节点就终止递归，防止死循环
-                if (DeletedIDS.Contains(node.CategoryID)) { return false; }
+                if (DeletedIDS.Contains(node.UID)) { return false; }
 
-                DeletedIDS.Add(node.CategoryID);
+                DeletedIDS.Add(node.UID);
                 return true;
             });
-            DeletedIDS = DeletedIDS.Where(x => x > 0).ToList();
+            DeletedIDS = DeletedIDS.Where(x => ValidateHelper.IsPlumpString(x)).ToList();
             if (!ValidateHelper.IsPlumpList(DeletedIDS))
             {
                 return "没有获取到要删除的ID";
@@ -325,12 +343,11 @@ namespace Bll.Category
         /// </summary>
         /// <param name="ids"></param>
         /// <returns></returns>
-        public string DeleteSingleNodeByIDS(params int[] ids)
+        public string DeleteSingleNodeByIDS(params string[] ids)
         {
-            var data = ConvertHelper.NotNullList(ids).Where(x => x > 0).ToList();
-            if (!ValidateHelper.IsPlumpList(data)) { return "未找到有效参数"; }
+            if (!ValidateHelper.IsPlumpList(ids)) { return "未找到有效参数"; }
             int count = 0;
-            var list = _CategoryDal.GetList(x => data.Contains(x.CategoryID));
+            var list = _CategoryDal.GetList(x => ids.Contains(x.UID));
             if (ValidateHelper.IsPlumpList(list))
             {
                 count = _CategoryDal.Delete(list.ToArray());
@@ -345,8 +362,7 @@ namespace Bll.Category
         /// <returns></returns>
         public string UpdateNode(CategoryModel updateModel)
         {
-            if (updateModel.CategoryID <= 0) { return "节点id错误"; }
-            var model = _CategoryDal.GetFirst(x => x.CategoryID == updateModel.CategoryID);
+            var model = _CategoryDal.GetFirst(x => x.UID == updateModel.UID);
             if (model == null) { return "您要修改的数据不存在"; }
 
             //名字

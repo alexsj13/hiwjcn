@@ -22,6 +22,74 @@ using Lib.data;
 namespace Lib.extension
 {
     /// <summary>
+    /// 针对不同数据库的sql方言
+    /// </summary>
+    public interface ISqlDialect
+    { }
+
+    public class MySqlDialect : ISqlDialect
+    { }
+
+    public class SqlServerDialect : ISqlDialect
+    { }
+
+    public class PostgreSqlDialect : ISqlDialect
+    { }
+
+    public static class SimpleOrmExtension
+    {
+        /// <summary>
+        /// 这个字段是数据库自动生成
+        /// </summary>
+        /// <param name="prop"></param>
+        /// <returns></returns>
+        public static bool IsGeneratedInDatabase(this PropertyInfo prop)
+        {
+            return prop.GetCustomAttributes<DatabaseGeneratedAttribute>().Where(m => m.DatabaseGeneratedOption != DatabaseGeneratedOption.None).Any();
+        }
+
+        /// <summary>
+        /// 获取表名
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static string GetTableName(this Type t)
+        {
+            return t.GetCustomAttribute<TableAttribute>()?.Name ?? t.Name;
+        }
+
+        /// <summary>
+        /// 获取字段对应的属性
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static IEnumerable<PropertyInfo> GetColumnsProperties(this Type t)
+        {
+            return t.GetProperties().Where(x => x.CanRead && x.CanWrite).Where(x => !x.GetCustomAttributes<NotMappedAttribute>().Any());
+        }
+
+        /// <summary>
+        /// 获取字段属性的信息
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        public static (string column, string placeholder) GetColumnInfo(this PropertyInfo p)
+        {
+            var column = p.GetCustomAttribute<ColumnAttribute>()?.Name ?? p.Name;
+            var placeholder = p.Name;
+            return (column, placeholder);
+        }
+
+        /// <summary>
+        /// 是否是主键
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
+        public static bool IsPrimaryKey(this PropertyInfo p) => p.GetCustomAttributes<KeyAttribute>().Any();
+
+    }
+
+    /// <summary>
     /// 对dapper的扩展
     /// </summary>
     public static class DapperExtension
@@ -43,7 +111,7 @@ namespace Lib.extension
         /// <param name="con"></param>
         /// <param name="level"></param>
         /// <returns></returns>
-        public static IDbTransaction StartTransaction(this IDbConnection con, IsolationLevel? level)
+        public static IDbTransaction StartTransaction(this IDbConnection con, IsolationLevel? level = null)
         {
             if (level == null)
             {
@@ -84,52 +152,71 @@ namespace Lib.extension
         }
 
         /// <summary>
+        /// 获取dapper的动态参数
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static DynamicParameters ToDapperParams(this Dictionary<string, object> data)
+        {
+            var args = new DynamicParameters(new { });
+            foreach (var row in data.AsTupleEnumerable())
+            {
+                args.Add(row.key, row.value);
+            }
+            return args;
+        }
+
+        /// <summary>
         /// 获取表结构
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="model"></param>
         /// <returns></returns>
-        [Obsolete("还没写完")]
-        public static (string table_name, Dictionary<string, string> keys, Dictionary<string, string> columns)
+        public static (string table_name, Dictionary<string, string> keys,
+            Dictionary<string, string> auto_generated_columns, Dictionary<string, string> columns)
             GetTableStructure<T>(this T model) where T : IDBTable
         {
-            var t = model.GetType();
-            var pps = t.GetProperties().Where(x => x.CanRead).Where(x => !x.GetCustomAttributes<NotMappedAttribute>().Any());
-            //table
-            var table_name = t.GetCustomAttribute<TableAttribute>()?.Name ?? t.Name;
+            return model.GetType().GetTableStructure();
+        }
+
+        /// <summary>
+        /// 获取表结构
+        /// </summary>
+        /// <param name="t"></param>
+        /// <returns></returns>
+        public static (string table_name, Dictionary<string, string> keys,
+            Dictionary<string, string> auto_generated_columns, Dictionary<string, string> columns)
+            GetTableStructure(this Type t)
+        {
+            var pps = t.GetColumnsProperties();
+            //表名
+            var table_name = t.GetTableName();
 
             //读取字段名和sql的placeholder
-            (string column, string placeholder) GetColumn(PropertyInfo p)
-            {
-                var column = p.GetCustomAttribute<ColumnAttribute>()?.Name ?? p.Name;
-                var placeholder = p.Name;
-                return (column, placeholder);
-            }
+            (string column, string placeholder) GetColumn(PropertyInfo p) => p.GetColumnInfo();
 
-            //keys
-            var key_props = pps.Where(x => x.GetCustomAttributes<KeyAttribute>().Any()).ToList();
+            //主键
+            var key_props = pps.Where(x => x.IsPrimaryKey()).ToList();
+            if (!ValidateHelper.IsPlumpList(key_props))
+            {
+                throw new Exception("Model没有设置主键");
+            }
             var keys = key_props.Select(x => GetColumn(x)).ToDictionary(x => x.column, x => x.placeholder);
 
-            //columns
-            var column_props = pps.Where(x =>
-            !(x.GetCustomAttributes<KeyAttribute>().Any() || x.GetCustomAttributes<DatabaseGeneratedAttribute>().Any())).ToList();
-            if (!ValidateHelper.IsPlumpList(column_props)) { throw new Exception("无法提取到有效字段"); }
-            var columns = column_props.Select(x => GetColumn(x)).ToDictionary(x => x.column, x => x.placeholder);
-            /*
-             var props = new Dictionary<string, string>();
-            foreach (var p in t.GetProperties().Where(x => x.CanRead))
-            {
-                //跳过不映射字段
-                if (p.GetCustomAttributes<NotMappedAttribute>().Any()) { continue; }
-                //跳过自增
-                if (p.GetCustomAttributes<DatabaseGeneratedAttribute>().Any()) { continue; }
-                //获取字段
-                var column = p.GetCustomAttribute<ColumnAttribute>()?.Name ?? p.Name;
+            //自动生成的字段
+            var auto_generated_props = pps.Where(x => x.IsGeneratedInDatabase()).ToList();
+            var auto_generated_columns = auto_generated_props.Select(x => GetColumn(x)).ToDictionary(x => x.column, x => x.placeholder);
 
-                props[column] = p.Name;
+            //普通字段
+            var column_props = pps.Where(x => !keys.Values.Contains(x.Name)).ToList();
+            column_props = pps.Where(x => !auto_generated_columns.Values.Contains(x.Name)).ToList();
+            if (!ValidateHelper.IsPlumpList(column_props))
+            {
+                throw new Exception("无法提取到有效字段");
             }
-             */
-            return (table_name, keys, columns);
+            var columns = column_props.Select(x => GetColumn(x)).ToDictionary(x => x.column, x => x.placeholder);
+
+            return (table_name, keys, auto_generated_columns, columns);
         }
 
         /// <summary>
@@ -139,26 +226,11 @@ namespace Lib.extension
         /// <returns></returns>
         public static string GetInsertSql<T>(this T model) where T : IDBTable
         {
-            var t = model.GetType();
-            var table_name = t.GetCustomAttribute<TableAttribute>()?.Name ?? t.Name;
+            var structure = model.GetTableStructure();
 
-            var props = new Dictionary<string, string>();
-            foreach (var p in t.GetProperties().Where(x => x.CanRead))
-            {
-                //跳过不映射字段
-                if (p.GetCustomAttributes<NotMappedAttribute>().Any()) { continue; }
-                //跳过自增
-                if (p.GetCustomAttributes<DatabaseGeneratedAttribute>().Any()) { continue; }
-                //获取字段
-                var column = p.GetCustomAttribute<ColumnAttribute>()?.Name ?? p.Name;
-
-                props[column] = p.Name;
-            }
-            if (!ValidateHelper.IsPlumpDict(props)) { throw new Exception("无法提取到有效字段"); }
-
-            var k = string.Join(",", props.Keys);
-            var v = string.Join(",", props.Values.Select(x => "@" + x));
-            var sql = $"INSERT INTO {table_name} ({k}) VALUES ({v})";
+            var k = ",".Join(structure.columns.Keys);
+            var v = ",".Join(structure.columns.Values.Select(x => $"@{x}"));
+            var sql = $"INSERT INTO {structure.table_name} ({k}) VALUES ({v})";
             return sql;
         }
 
@@ -213,7 +285,100 @@ namespace Lib.extension
         /// <returns></returns>
         public static string GetUpdateSql<T>(this T model) where T : IDBTable
         {
-            throw new NotImplementedException();
+            var structure = model.GetTableStructure();
+
+            var set = ",".Join(structure.columns.Select(x => $"{x.Key}=@{x.Value}"));
+            var where = " AND ".Join(structure.keys.Select(x => $"{x.Key}=@{x.Value}"));
+            var sql = $"UPDATE {structure.table_name} SET {set} WHERE {where}";
+            return sql;
+        }
+
+        /// <summary>
+        /// 通过主键更新数据，自动生成字段和主键不更新
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="con"></param>
+        /// <param name="model"></param>
+        /// <param name="transaction"></param>
+        /// <param name="commandTimeout"></param>
+        /// <returns></returns>
+        public static int Update<T>(this IDbConnection con, T model,
+            IDbTransaction transaction = null, int? commandTimeout = default(int?)) where T : IDBTable
+        {
+            var sql = model.GetUpdateSql();
+            try
+            {
+                return con.Execute(sql, model, transaction: transaction, commandTimeout: commandTimeout);
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"无法执行SQL:{sql}", e);
+            }
+        }
+
+        /// <summary>
+        /// 通过主键更新数据，自动生成字段和主键不更新
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="con"></param>
+        /// <param name="model"></param>
+        /// <param name="transaction"></param>
+        /// <param name="commandTimeout"></param>
+        /// <returns></returns>
+        public static async Task<int> UpdateAsync<T>(this IDbConnection con, T model,
+            IDbTransaction transaction = null, int? commandTimeout = default(int?)) where T : IDBTable
+        {
+            var sql = model.GetUpdateSql();
+            try
+            {
+                return await con.ExecuteAsync(sql, model, transaction: transaction, commandTimeout: commandTimeout);
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"无法执行SQL:{sql}", e);
+            }
+        }
+
+        [Obsolete("实现比较垃圾")]
+        public static async Task<T> FindByPrimaryKeyAsync<T>(this IDbConnection con, object[] keys,
+            IDbTransaction transaction = null, int? commandTimeout = default(int?))
+        {
+            var structure = typeof(T).GetTableStructure();
+            if (keys.Length != structure.keys.Count) { throw new Exception("传入主键数量和数据表不一致"); }
+            var where = " AND ".Join(structure.keys.Select(x => $"{x.Key}=@{x.Value}"));
+
+            var sql = $"SELECT * FROM {structure.table_name} WHERE {where}";
+
+            var param_dict = new Dictionary<string, object>();
+            var index = 0;
+            foreach (var row in structure.keys.AsTupleEnumerable())
+            {
+                param_dict[row.value] = keys[index++];
+            }
+
+            return (await con.QueryAsync<T>(sql, param_dict.ToDapperParams(),
+                transaction: transaction, commandTimeout: commandTimeout)).FirstOrDefault();
+        }
+
+        [Obsolete("实现比较垃圾")]
+        public static T FindByPrimaryKey<T>(this IDbConnection con, object[] keys,
+            IDbTransaction transaction = null, int? commandTimeout = default(int?))
+        {
+            var structure = typeof(T).GetTableStructure();
+            if (keys.Length != structure.keys.Count) { throw new Exception("传入主键数量和数据表不一致"); }
+            var where = " AND ".Join(structure.keys.Select(x => $"{x.Key}=@{x.Value}"));
+
+            var sql = $"SELECT * FROM {structure.table_name} WHERE {where}";
+
+            var param_dict = new Dictionary<string, object>();
+            var index = 0;
+            foreach (var row in structure.keys.AsTupleEnumerable())
+            {
+                param_dict[row.value] = keys[index++];
+            }
+
+            return con.Query<T>(sql, param_dict.ToDapperParams(),
+                transaction: transaction, commandTimeout: commandTimeout).FirstOrDefault();
         }
     }
 
@@ -241,6 +406,28 @@ namespace Lib.extension
     /// </summary>
     public static class AdoExtension
     {
+        /// <summary>
+        /// 复制参数
+        /// </summary>
+        public static T[] CloneParams<T>(IEnumerable<T> list) where T : DbParameter
+            => Com.CloneParams(list.ToList());
+
+        /// <summary>
+        /// 转为json
+        /// </summary>
+        public static string DataTableToJson(this DataTable tb)
+        {
+            return JsonHelper.DataTableToJson(tb);
+        }
+
+        /// <summary>
+        /// 转为实体对象
+        /// </summary>
+        public static List<T> ToEntityList_<T>(this DataTable tb)
+        {
+            return tb.DataTableToJson().JsonToEntity<List<T>>();
+        }
+
         /// <summary>
         /// 这个方法来自途虎养车网，自己做了一些小修改
         /// </summary>
@@ -285,9 +472,6 @@ namespace Lib.extension
         /// <summary>
         /// 获取Json（测试可用）
         /// </summary>
-        /// <param name="reader"></param>
-        /// <returns></returns>
-        [Obsolete("强烈推荐使用Dapper")]
         public static string GetJson(this IDataReader reader)
         {
             var fields = new List<string>();
@@ -309,6 +493,14 @@ namespace Lib.extension
                 arr.Add(jo);
             }
             return arr.ToString();
+        }
+
+        /// <summary>
+        /// 转为实体
+        /// </summary>
+        public static List<T> ToEntityList_<T>(this IDataReader reader)
+        {
+            return reader.GetJson().JsonToEntity<List<T>>();
         }
 
         /// <summary>

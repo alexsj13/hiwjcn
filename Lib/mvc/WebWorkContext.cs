@@ -2,6 +2,8 @@
 using Lib.ioc;
 using System;
 using System.Web;
+using Lib.mvc.auth;
+using System.Threading.Tasks;
 
 namespace Lib.mvc
 {
@@ -10,7 +12,6 @@ namespace Lib.mvc
     /// </summary>
     public class WebWorkContext : IDisposable
     {
-
         public HttpContext context { get; private set; }
 
         public bool IsPost { get; private set; }
@@ -19,10 +20,7 @@ namespace Lib.mvc
 
         public bool IsPostAjax
         {
-            get
-            {
-                return IsPost && IsAjax;
-            }
+            get => this.IsPost && this.IsAjax;
         }
 
         public string IP { get; private set; }
@@ -32,6 +30,19 @@ namespace Lib.mvc
         public string Url { get; private set; }
 
         #region 登录信息
+        private LoginUserInfo _auth_user;
+        public LoginUserInfo AuthUser
+        {
+            get
+            {
+                if (this._auth_user == null)
+                {
+                    this._auth_user = this.context.GetAuthUser();
+                }
+                return this._auth_user;
+            }
+        }
+
         public LoginUserInfo User { get; private set; }
 
         public LoginUserInfo SSOUser { get; private set; }
@@ -50,15 +61,11 @@ namespace Lib.mvc
 
         public WebWorkContext(System.Web.HttpContext context)
         {
-            if (context == null)
-            {
-                throw new Exception("上下文不能为空");
-            }
-            this.context = context;
+            this.context = context ?? throw new Exception("上下文不能为空");
 
             this.IsPost = context.Request.IsPost();
             this.IsAjax = context.Request.IsAjax();
-            this.IP = context.Request.Ip();
+            this.IP = context.Ip();
             this.BaseUrl = context.Request.GetBaseUrl();
             this.Url = context.Request.GetCurrentUrl();
             //login user
@@ -67,12 +74,13 @@ namespace Lib.mvc
 
         public void LoadLoginUser()
         {
-            this.User = AppContext.GetObject<LoginStatus>().GetLoginUser(context);
-            this.SSOUser = AccountHelper.SSO.GetLoginUser(context);
-            this.LoginUser = AccountHelper.User.GetLoginUser(context);
-            this.LoginTrader = AccountHelper.Trader.GetLoginUser(context);
-            this.LoginSeller = AccountHelper.Seller.GetLoginUser(context);
-            this.LoginAdmin = AccountHelper.Admin.GetLoginUser(context);
+            this._auth_user = null;
+            this.User = AppContext.Scope(s => s.Resolve_<LoginStatus>().GetLoginUser(this.context));
+            this.SSOUser = AccountHelper.SSO.GetLoginUser(this.context);
+            this.LoginUser = AccountHelper.User.GetLoginUser(this.context);
+            this.LoginTrader = AccountHelper.Trader.GetLoginUser(this.context);
+            this.LoginSeller = AccountHelper.Seller.GetLoginUser(this.context);
+            this.LoginAdmin = AccountHelper.Admin.GetLoginUser(this.context);
         }
 
         public void Dispose()

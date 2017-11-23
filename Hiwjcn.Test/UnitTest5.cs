@@ -3,7 +3,6 @@ using Lib.extension;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Castle.DynamicProxy;
 using Hiwjcn.Bll;
-using Castle.Core.Interceptor;
 using Model.User;
 using Lib.helper;
 
@@ -59,7 +58,7 @@ namespace Hiwjcn.Test
             }
         }
 
-        public class inter : Castle.Core.Interceptor.IInterceptor
+        public class inter : IInterceptor
         {
             public wj next { get; set; }
             public inter(wj n)

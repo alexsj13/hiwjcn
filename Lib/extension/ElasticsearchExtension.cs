@@ -7,18 +7,18 @@ using System.Configuration;
 using System.Linq;
 using System.Linq.Expressions;
 using Lib.core;
+using System.Threading.Tasks;
+using Lib.data.elasticsearch;
 
 namespace Lib.extension
 {
-    public interface IElasticSearchIndex { }
-
     public static class ElasticsearchExtension
     {
         /// <summary>
         /// 如果有错误就抛出异常
         /// </summary>
         /// <param name="response"></param>
-        public static void ThrowIfException(this IResponse response)
+        public static T ThrowIfException<T>(this T response) where T : IResponse
         {
             if (!response.IsValid)
             {
@@ -32,6 +32,7 @@ namespace Lib.extension
                     throw response.OriginalException;
                 }
             }
+            return response;
         }
 
         /// <summary>
@@ -73,17 +74,42 @@ namespace Lib.extension
         /// <param name="indexName"></param>
         /// <param name="selector"></param>
         /// <returns></returns>
-        public static bool CreateIndexIfNotExists(this IElasticClient client, string indexName,
-            Func<CreateIndexDescriptor, ICreateIndexRequest> selector = null)
+        public static void CreateIndexIfNotExists(this IElasticClient client, string indexName, Func<CreateIndexDescriptor, ICreateIndexRequest> selector = null)
         {
             indexName = indexName.ToLower();
 
-            if (client.IndexExists(indexName).Exists)
-                return true;
+            var exist_response = client.IndexExists(indexName);
+            exist_response.ThrowIfException();
+
+            if (exist_response.Exists)
+            {
+                return;
+            }
 
             var response = client.CreateIndex(indexName, selector);
+            response.ThrowIfException();
+        }
 
-            return response.IsValid;
+        /// <summary>
+        /// 如果索引不存在就创建
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="indexName"></param>
+        /// <param name="selector"></param>
+        /// <returns></returns>
+        public static async Task CreateIndexIfNotExistsAsync(this IElasticClient client, string indexName, Func<CreateIndexDescriptor, ICreateIndexRequest> selector = null)
+        {
+            indexName = indexName.ToLower();
+            var exist_response = await client.IndexExistsAsync(indexName);
+            exist_response.ThrowIfException();
+
+            if (exist_response.Exists)
+            {
+                return;
+            }
+
+            var response = await client.CreateIndexAsync(indexName, selector);
+            response.ThrowIfException();
         }
 
         /// <summary>
@@ -92,16 +118,41 @@ namespace Lib.extension
         /// <param name="client"></param>
         /// <param name="indexName"></param>
         /// <returns></returns>
-        public static bool DeleteIndexIfExists(this IElasticClient client, string indexName)
+        public static void DeleteIndexIfExists(this IElasticClient client, string indexName)
         {
             indexName = indexName.ToLower();
 
-            if (!client.IndexExists(indexName).Exists)
-                return true;
+            var exist_response = client.IndexExists(indexName);
+            exist_response.ThrowIfException();
+
+            if (!exist_response.Exists)
+            {
+                return;
+            }
 
             var response = client.DeleteIndex(indexName);
+            response.ThrowIfException();
+        }
 
-            return response.IsValid;
+        /// <summary>
+        /// 删除索引
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="indexName"></param>
+        /// <returns></returns>
+        public static async Task DeleteIndexIfExistsAsync(this IElasticClient client, string indexName)
+        {
+            indexName = indexName.ToLower();
+            var exist_response = await client.IndexExistsAsync(indexName);
+            exist_response.ThrowIfException();
+
+            if (!exist_response.Exists)
+            {
+                return;
+            }
+
+            var response = await client.DeleteIndexAsync(indexName);
+            response.ThrowIfException();
         }
 
         /// <summary>
@@ -124,20 +175,38 @@ namespace Lib.extension
         }
 
         /// <summary>
-        /// 搜索建议
+        /// 添加到索引
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="client"></param>
-        /// <param name="targetField"></param>
-        /// <param name="text"></param>
+        /// <param name="indexName"></param>
+        /// <param name="data"></param>
         /// <returns></returns>
-        public static IDictionary<string, Suggest[]> SuggestKeyword<T>(this IElasticClient client,
-            Expression<Func<T, object>> targetField, string text)
+        public static async Task AddToIndexAsync<T>(this IElasticClient client, string indexName, params T[] data) where T : class, IElasticSearchIndex
+        {
+            var bulk = new BulkRequest(indexName)
+            {
+                Operations = ConvertHelper.NotNullList(data).Select(x => new BulkIndexOperation<T>(x)).ToArray()
+            };
+            var response = await client.BulkAsync(bulk);
+
+            response.ThrowIfException();
+        }
+
+        /// <summary>
+        /// 搜索建议
+        /// https://elasticsearch.cn/article/142
+        /// </summary>
+        public static IDictionary<string, Suggest[]> PhraseSuggest<T>(this IElasticClient client,
+            string index,
+            Expression<Func<T, object>> targetField, string text,
+            string highlight_pre = "<em>", string hightlight_post = "</em>", int size = 20)
             where T : class, IElasticSearchIndex
         {
             var response = client.Suggest<T>(
-                x => x.Phrase("phrase_suggest",
-                m => m.Field(targetField).Text(text)));
+                x => x.Index(index).Phrase("phrase_suggest",
+                f => f.Field(targetField).Text(text)
+                .Highlight(h => h.PreTag(highlight_pre).PostTag(hightlight_post)).Size(size)));
 
             response.ThrowIfException();
 
@@ -145,14 +214,93 @@ namespace Lib.extension
         }
 
         /// <summary>
+        /// 搜索建议
+        /// </summary>
+        public static IDictionary<string, Suggest[]> TermSuggest<T>(this IElasticClient client,
+            string index,
+            Expression<Func<T, object>> targetField, string text, string analyzer = null,
+            string highlight_pre = "<em>", string hightlight_post = "</em>", int size = 20)
+            where T : class, IElasticSearchIndex
+        {
+            var sd = new TermSuggesterDescriptor<T>();
+            sd = sd.Field(targetField).Text(text);
+            if (ValidateHelper.IsPlumpString(analyzer))
+            {
+                sd = sd.Analyzer(analyzer);
+            }
+            sd = sd.Size(size);
+
+            var response = client.Suggest<T>(x => x.Index(index).Term("term_suggest", f => sd));
+
+            response.ThrowIfException();
+
+            return response.Suggestions;
+        }
+
+        /// <summary>
+        /// 搜索建议
+        /// </summary>
+        public static IDictionary<string, Suggest[]> CompletionSuggest<T>(this IElasticClient client,
+            string index,
+            Expression<Func<T, object>> targetField, string text, string analyzer = null,
+            string highlight_pre = "<em>", string hightlight_post = "</em>", int size = 20)
+            where T : class, IElasticSearchIndex
+        {
+            var sd = new CompletionSuggesterDescriptor<T>();
+            sd = sd.Field(targetField).Text(text);
+            if (ValidateHelper.IsPlumpString(analyzer))
+            {
+                sd = sd.Analyzer(analyzer);
+            }
+            sd = sd.Size(size);
+
+            var response = client.Suggest<T>(x => x.Index(index).Completion("completion_suggest", f => sd));
+
+            response.ThrowIfException();
+
+            return response.Suggestions;
+        }
+
+        public static async Task<List<string>> SimpleCompletionSuggest<T>(this IElasticClient client,
+            string index,
+            string keyword, string analyzer = null, int size = 20)
+            where T : CompletionSuggestIndexBase
+        {
+            var data = new List<string>();
+            if (!ValidateHelper.IsPlumpString(keyword))
+            {
+                return data;
+            }
+
+            var sd = new CompletionSuggesterDescriptor<T>();
+            sd = sd.Field(f => f.CompletionSearchTitle).Text(keyword);
+            if (ValidateHelper.IsPlumpString(analyzer))
+            {
+                sd = sd.Analyzer(analyzer);
+            }
+            //允许错4个单词
+            sd = sd.Fuzzy(f => f.Fuzziness(Fuzziness.EditDistance(4)));
+            sd = sd.Size(size);
+
+            var s_name = "p";
+
+            var response = await client.SuggestAsync<T>(x => x.Index(index).Completion(s_name, f => sd));
+            response.ThrowIfException();
+
+            var list = response.Suggestions?[s_name]?.FirstOrDefault()?.Options?.ToList();
+            if (!ValidateHelper.IsPlumpList(list))
+            {
+                return data;
+            }
+            var sggs = list.OrderByDescending(x => x.Score).Select(x => x.Text);
+            data.AddRange(sggs);
+
+            return data.Where(x => ValidateHelper.IsPlumpString(x)).Distinct().ToList();
+        }
+
+        /// <summary>
         /// 给关键词添加高亮
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sd"></param>
-        /// <param name="pre"></param>
-        /// <param name="after"></param>
-        /// <param name="fieldHighlighters"></param>
-        /// <returns></returns>
         public static SearchDescriptor<T> AddHighlightWrapper<T>(this SearchDescriptor<T> sd,
             string pre = "<em>", string after = "</em>",
             params Func<HighlightFieldDescriptor<T>, IHighlightField>[] fieldHighlighters)
@@ -217,13 +365,22 @@ namespace Lib.extension
         /// <summary>
         /// 开启链接调试
         /// </summary>
-        /// <param name="setting"></param>
-        /// <param name="handler"></param>
-        public static void EnableDebug(this ConnectionSettings setting, Action<IApiCallDetails> handler)
+        public static ConnectionSettings EnableDebug(this ConnectionSettings setting)
         {
-            if (handler == null)
+            return setting.DisableDirectStreaming(true);
+        }
+
+        /// <summary>
+        /// 记录请求信息
+        /// </summary>
+        /// <param name="pool"></param>
+        /// <param name="handlerOrDefault"></param>
+        /// <returns></returns>
+        public static ConnectionSettings LogRequestInfo(this ConnectionSettings pool, Action<IApiCallDetails> handlerOrDefault = null)
+        {
+            if (handlerOrDefault == null)
             {
-                handler = x =>
+                handlerOrDefault = x =>
                 {
                     if (x.OriginalException != null)
                     {
@@ -238,25 +395,118 @@ namespace Lib.extension
                     }.ToJson().AddBusinessInfoLog();
                 };
             }
-            setting.DisableDirectStreaming();
-            setting.OnRequestCompleted(handler);
+            return pool.OnRequestCompleted(handlerOrDefault);
+        }
+
+        /// <summary>
+        /// 创建client
+        /// </summary>
+        /// <param name="pool"></param>
+        /// <returns></returns>
+        public static IElasticClient CreateClient(this ConnectionSettings pool) => new ElasticClient(pool);
+
+        /// <summary>
+        /// 唯一ID
+        /// </summary>
+        public static DocumentPath<T> ID<T>(this IElasticClient client, string indexName, string uid) where T : class, IElasticSearchIndex
+        {
+            return DocumentPath<T>.Id(uid).Index(indexName);
+        }
+
+        /// <summary>
+        /// 判断文件是否存在
+        /// </summary>
+        public static bool DocExist_<T>(this IElasticClient client, string indexName, string uid) where T : class, IElasticSearchIndex
+        {
+            var response = client.DocumentExists(client.ID<T>(indexName, uid));
+            return response.ThrowIfException().Exists;
+        }
+
+        /// <summary>
+        /// 判断文件是否存在
+        /// </summary>
+        public static async Task<bool> DocExistAsync_<T>(this IElasticClient client, string indexName, string uid) where T : class, IElasticSearchIndex
+        {
+            var response = await client.DocumentExistsAsync(client.ID<T>(indexName, uid));
+            return response.ThrowIfException().Exists;
+        }
+
+        /// <summary>
+        /// 更新文档
+        /// </summary>
+        public static void UpdateDoc_<T>(this IElasticClient client, string indexName, string uid, T doc) where T : class, IElasticSearchIndex
+        {
+            var update_response = client.Update(client.ID<T>(indexName, uid), x => x.Doc(doc));
+            update_response.ThrowIfException();
+        }
+
+        /// <summary>
+        /// 更新文档
+        /// </summary>
+        public static async Task UpdateDocAsync_<T>(this IElasticClient client, string indexName, string uid, T doc) where T : class, IElasticSearchIndex
+        {
+            var update_response = await client.UpdateAsync(client.ID<T>(indexName, uid), x => x.Doc(doc));
+            update_response.ThrowIfException();
+        }
+
+        /// <summary>
+        /// 删除文档
+        /// </summary>
+        public static void DeleteDoc_<T>(this IElasticClient client, string indexName, string uid) where T : class, IElasticSearchIndex
+        {
+            var delete_response = client.Delete(client.ID<T>(indexName, uid));
+            delete_response.ThrowIfException();
+        }
+
+        /// <summary>
+        /// 删除文档
+        /// </summary>
+        public static async Task DeleteDocAsync_<T>(this IElasticClient client, string indexName, string uid) where T : class, IElasticSearchIndex
+        {
+            var delete_response = await client.DeleteAsync(client.ID<T>(indexName, uid));
+            delete_response.ThrowIfException();
+        }
+
+        /// <summary>
+        /// 通过条件删除
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="client"></param>
+        /// <param name="indexName"></param>
+        /// <param name="where"></param>
+        public static void DeleteByQuery_<T>(this IElasticClient client, string indexName, QueryContainer where) where T : class, IElasticSearchIndex
+        {
+            var query = new DeleteByQueryRequest<T>(indexName) { Query = where };
+
+            var response = client.DeleteByQuery(query);
+
+            response.ThrowIfException();
+        }
+
+        /// <summary>
+        /// 通过条件删除
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="client"></param>
+        /// <param name="indexName"></param>
+        /// <param name="where"></param>
+        /// <returns></returns>
+        public static async Task DeleteByQueryAsync_<T>(this IElasticClient client, string indexName, QueryContainer where) where T : class, IElasticSearchIndex
+        {
+            var query = new DeleteByQueryRequest<T>(indexName) { Query = where };
+
+            var response = await client.DeleteByQueryAsync(query);
+
+            response.ThrowIfException();
         }
 
         /// <summary>
         /// 根据距离排序
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="sort"></param>
-        /// <param name="field"></param>
-        /// <param name="lat"></param>
-        /// <param name="lng"></param>
-        /// <param name="desc"></param>
-        /// <returns></returns>
         public static SortDescriptor<T> SortByDistance<T>(this SortDescriptor<T> sort,
-            Expression<Func<T, object>> field, double lat, double lng, bool desc = false)
-            where T : class, IElasticSearchIndex
+            Expression<Func<T, object>> field, GeoLocation point, bool desc = false) where T : class, IElasticSearchIndex
         {
-            var geo_sort = new SortGeoDistanceDescriptor<T>().PinTo(new GeoLocation(lat, lng));
+            var geo_sort = new SortGeoDistanceDescriptor<T>().PinTo(point);
             if (desc)
             {
                 geo_sort = geo_sort.Descending();
@@ -318,392 +568,78 @@ namespace Lib.extension
             sd = sd.Aggregations(a => a.Max("max", x => x.Field(m => m.IsGroup)));
             sd = sd.Aggregations(a => a.Stats("stats", x => x.Field(m => m.BrandId).Field(m => m.PIsRemove)));
 
-            var response = ElasticsearchHelper.CreateClient().Search<EsExample.ProductListV2>(x => sd);
+            var response = ElasticsearchClientManager.Instance.DefaultClient.CreateClient().Search<EsExample.ProductListV2>(x => sd);
 
             var stats = response.Aggs.Stats("stats");
             //etc
         }
 
-    }
-
-    /// <summary>
-    /// ES服务器链接管理
-    /// </summary>
-    public class ElasticsearchClientManager : StaticClientManager<ConnectionSettings>
-    {
-        public static readonly ElasticsearchClientManager Instance = new ElasticsearchClientManager();
-
-        public override string DefaultKey
+        public static void SortWithScripts<T>(this SortDescriptor<T> sort) where T : class, IElasticSearchIndex
         {
-            get
+            var sd = new SortScriptDescriptor<T>();
+
+            sd = sd.Mode(SortMode.Sum).Type("number");
+            var script = "doc['price'].value * params.factor";
+            sd = sd.Script(x => x.Inline(script).Lang("painless").Params(new Dictionary<string, object>()
             {
-                return ConfigurationManager.ConnectionStrings["ES"]?.ConnectionString;
-            }
+                ["factor"] = 1.1
+            }));
+
+            sort.Script(x => sd.Descending());
         }
-
-        public override bool CheckClient(ConnectionSettings ins)
-        {
-            return ins != null;
-        }
-
-        public override ConnectionSettings CreateNewClient(string key)
-        {
-            var urls = key.Split('|', ';', ',').Select(s => new Uri(s));
-            var pool = new ConnectionSettings(new StaticConnectionPool(urls)).DisableDirectStreaming(true).MaximumRetries(2);
-
-            return pool;
-        }
-
-        public override void DisposeClient(ConnectionSettings ins)
-        {
-            IDisposable dis = ins;
-            dis?.Dispose();
-        }
-    }
-
-    /// <summary>
-    /// es
-    /// https://www.elastic.co/products/elasticsearch
-    /// </summary>
-    public static class ElasticsearchHelper
-    {
-        /// <summary>
-        /// 获取连接池
-        /// </summary>
-        /// <returns></returns>
-        public static ConnectionSettings GetConnectionSettings() => ElasticsearchClientManager.Instance.DefaultClient;
 
         /// <summary>
-        /// 获取链接对象
+        /// https://www.elastic.co/guide/en/elasticsearch/client/net-api/current/function-score-query-usage.html
         /// </summary>
-        /// <returns></returns>
-        public static IElasticClient CreateClient() => new ElasticClient(ElasticsearchClientManager.Instance.DefaultClient);
-    }
-
-    /// <summary>
-    /// ES例子
-    /// </summary>
-    public class EsExample
-    {
-        private QueryContainer BuildQuery(SearchParamModel model)
+        /// <param name="sd"></param>
+        public static void FunctionQuery(this SearchDescriptor<EsExample.ProductListV2> sd)
         {
-            var temp = new ProductListV2();
-            var qc = new QueryContainer();
+            var qs = new FunctionScoreQuery()
             {
-                var traderlist = new List<string>();
-                if (!ValidateHelper.IsPlumpString(model.province))
+                Name = "named_query",
+                Boost = 1.1,
+                Query = new MatchAllQuery { },
+                BoostMode = FunctionBoostMode.Multiply,
+                ScoreMode = FunctionScoreMode.Sum,
+                MaxBoost = 20.0,
+                MinScore = 1.0,
+                Functions = new List<IScoreFunction>
                 {
-                    throw new Exception("缺少区域信息");
-                }
-                if (ValidateHelper.IsPlumpString(model.trader))
-                {
-                    if (traderlist.Contains(model.trader))
+                    new ExponentialDecayFunction { Origin = 1.0, Decay =    0.5, Field = "", Scale = 0.1, Weight = 2.1 },
+                    new GaussDateDecayFunction { Origin = DateMath.Now, Field = "", Decay = 0.5, Scale = TimeSpan.FromDays(1) },
+                    new LinearGeoDecayFunction { Origin = new GeoLocation(70, -70), Field = "", Scale = Distance.Miles(1), MultiValueMode = MultiValueMode.Average },
+                    new FieldValueFactorFunction
                     {
-                        traderlist.Clear();
-                        traderlist.Add(model.trader);
-                    }
-                    else
-                    {
-                        traderlist.Clear();
-                    }
+                        Field = "x", Factor = 1.1,    Missing = 0.1, Modifier = FieldValueFactorModifier.Ln
+                    },
+                    new RandomScoreFunction { Seed = 1337 },
+                    new GaussGeoDecayFunction() { Origin=new GeoLocation(32,4) },
+                    new RandomScoreFunction { Seed = "randomstring" },
+                    new WeightFunction { Weight = 1.0},
+                    new ScriptScoreFunction { Script = new ScriptQuery { File = "x" } }
                 }
-                if (!ValidateHelper.IsPlumpList(traderlist))
-                {
-                    traderlist = new List<string>() { "构造一个不可能存在的值" };
-                }
-                qc = qc && new TermsQuery() { Field = nameof(temp.TraderId), Terms = traderlist };
-            }
-            var idlist = new string[] { };
-            if (!new string[] { "2", "4" }.Contains(model.CustomerType))
-            {
-
-                qc = qc && (!new TermsQuery() { Field = nameof(temp.UKey), Terms = idlist });
-            }
-            else
-            {
-                qc = qc && (!new TermsQuery() { Field = nameof(temp.UKey), Terms = idlist });
-            }
-            if (ValidateHelper.IsPlumpString(model.brand))
-            {
-                var brand_sp = ConvertHelper.GetString(model.brand).Split(',').Where(x => ValidateHelper.IsPlumpString(x)).ToArray();
-                qc = qc && new TermsQuery() { Field = nameof(temp.BrandId), Terms = brand_sp };
-            }
-            if (ValidateHelper.IsPlumpString(model.catalog))
-            {
-                qc = qc && (new TermQuery() { Field = nameof(temp.PlatformCatalogId), Value = model.catalog }
-                || new TermsQuery() { Field = nameof(temp.PlatformCatalogIdList), Terms = new object[] { model.catalog } }
-                || new TermsQuery() { Field = nameof(temp.ShowCatalogIdList), Terms = new object[] { model.catalog } });
-            }
-            if (model.min_price >= 0)
-            {
-                qc = qc && new NumericRangeQuery() { Field = nameof(temp.SalesPrice), GreaterThanOrEqualTo = (double)model.min_price };
-            }
-            if (model.max_price >= 0)
-            {
-                qc = qc && new NumericRangeQuery() { Field = nameof(temp.SalesPrice), LessThanOrEqualTo = (double)model.max_price };
-            }
-
-            new GeoDistanceQuery() { };
-            qc = qc && new GeoDistanceRangeQuery()
-            {
-                Field = "Location",
-                Location = new GeoLocation(32, 43),
-                LessThanOrEqualTo = Distance.Kilometers(1)
             };
-
-            try
-            {
-                if (!ValidateHelper.IsPlumpString(model.attr)) { model.attr = "[]"; }
-                var attr_list = model.attr.JsonToEntity<List<AttrParam>>();
-                /*
-                 if (ValidateHelper.IsPlumpList(attr_list))
-                {
-                    var attr_query = new QueryContainer();
-                    foreach (var attr in attr_list)
-                    {
-                        attr_query = attr_query || new TermQuery() { Field = $"{nameof(template.ProductAttributes)}.{attr.UID}", Value = attr.value };
-                    }
-                    qc = qc && new NestedQuery() { Path = nameof(template.ProductAttributes), Query = attr_query };
-                }
-                 */
-                if (ValidateHelper.IsPlumpList(attr_list))
-                {
-                    //qc = qc && new TermsQuery() { Field = nameof(temp.ProductAttributes), Terms = attr_list.Select(attr => $"{attr.UID}@$@{attr.value}") };
-                    foreach (var attr_key in attr_list.Select(x => x.UID).Distinct())
-                    {
-                        qc = qc && new TermsQuery() { Field = nameof(temp.ProductAttributes), Terms = attr_list.Where(x => x.UID == attr_key).Select(attr => $"{attr.UID}@$@{attr.value}") };
-                    }
-                }
-            }
-            catch { }
-            if (model.isGroup)
-            {
-                qc = qc && new TermQuery() { Field = nameof(temp.IsGroup), Value = 1 };
-            }
-            if (ValidateHelper.IsPlumpString(model.qs))
-            {
-                qc = qc && (new MatchQuery() { Field = nameof(temp.ShopName), Query = model.qs, Operator = Operator.Or, MinimumShouldMatch = "100%" }
-                || new MatchQuery() { Field = nameof(temp.SeachTitle), Query = model.qs, Operator = Operator.Or, MinimumShouldMatch = "100%" });
-            }
-
-            qc = qc && new TermQuery() { Field = nameof(temp.PAvailability), Value = 1 };
-            qc = qc && new TermQuery() { Field = nameof(temp.UpAvailability), Value = 1 };
-            qc = qc && new TermQuery() { Field = nameof(temp.PIsRemove), Value = 0 };
-            qc = qc && new TermQuery() { Field = nameof(temp.UpIsRemove), Value = 0 };
-            qc = qc && new NumericRangeQuery() { Field = nameof(temp.SalesPrice), GreaterThan = 0 };
-
-            return qc;
+            sd = sd.Query(x => qs);
+            sd = sd.Sort(x => x.Descending(s => s.UpdatedDate));
+            sd = sd.Skip(0).Take(10);
+            new ElasticClient().Search<EsExample.ProductListV2>(_ => sd);
         }
 
-        private SortDescriptor<ProductListV2> BuildSort(SearchParamModel model)
+        public static void UpdateDoc(IElasticClient client)
         {
-            var sort = new SortDescriptor<ProductListV2>();
-            sort = sort.Descending(x => x.InventoryStatus);
-            if (model.order_rule == "1")
-            {
-                sort = sort.Descending(x => x.SalesVolume);
-            }
-            else if (model.order_rule == "2")
-            {
-                sort = sort.Ascending(x => x.SalesPrice);
-            }
-            else
-            {
-                sort = sort.Descending(x => x.SalesPrice);
-            }
+            //https://stackoverflow.com/questions/42210930/nest-how-to-use-updatebyquery
 
-            //更具坐标排序
-            sort = sort.GeoDistance(x => x.Field(f => f.IsGroup).PinTo(new GeoLocation(52.310551, 4.404954)).Ascending());
+            var query = new QueryContainer();
+            query &= new TermQuery() { Field = "name", Value = "wj" };
 
-            return sort;
+            client.UpdateByQuery<EsExample.ProductListV2>(q => q.Query(rq => query).Script(script => script
+        .Inline("ctx._source.name = newName;")
+        .Params(new Dictionary<string, object>() { ["newName"] = "wj" })));
+
+            //
+            client.Update(DocumentPath<EsExample.ProductListV2>.Id(""),
+                x => x.Index("").Type<EsExample.ProductListV2>().Doc(new EsExample.ProductListV2() { }));
         }
 
-        private static readonly string ES_PRODUCTLIST_INDEX = ConfigurationManager.AppSettings["ES_PRODUCTLIST_INDEX"];
-        private static readonly string ES_SERVERS = ConfigurationManager.AppSettings["ES_SERVERS"];
-
-        private static readonly ConnectionSettings setting = new ConnectionSettings(new SniffingConnectionPool(ES_SERVERS.Split('|', ',').Select(x => new Uri(x)))).DisableDirectStreaming(true);
-
-        private static void PrepareES(Func<ElasticClient, bool> func)
-        {
-            var client = new ElasticClient(setting);
-            func.Invoke(client);
-        }
-
-        private static Dictionary<string, List<KeyedBucket>> GetAggs<T>(ISearchResponse<T> response) where T : class, new()
-        {
-            return response?.Aggregations?.ToDictionary(
-                    x => x.Key,
-                    x => (x.Value as BucketAggregate)?.Items.Select(i => (i as KeyedBucket)).Where(i => i != null).ToList()
-                    )?.Where(x => ValidateHelper.IsPlumpList(x.Value)).ToDictionary(x => x.Key, x => x.Value);
-        }
-
-        public ISearchResponse<ProductListV2> SearchEsProducts(SearchParamModel model)
-        {
-            ISearchResponse<ProductListV2> response = null;
-            var temp = new ProductListV2();
-            PrepareES(client =>
-            {
-                var sd = new SearchDescriptor<ProductListV2>();
-
-                sd = sd.Index(ES_PRODUCTLIST_INDEX);
-
-                sd = sd.Query(q => BuildQuery(model));
-
-                var NAMEOF_ShowCatalogIdList = nameof(temp.ShowCatalogIdList);
-                var NAMEOF_BrandId = nameof(temp.BrandId);
-                var NAMEOF_ProductAttributes = nameof(temp.ProductAttributes);
-
-                sd = sd.Aggregations(agg => agg
-                .Terms(NAMEOF_ShowCatalogIdList, av => av.Field(NAMEOF_ShowCatalogIdList).Size(1000))
-                .Terms(NAMEOF_BrandId, av => av.Field(NAMEOF_BrandId).Size(1000))
-                .Terms(NAMEOF_ProductAttributes, av => av.Field(NAMEOF_ProductAttributes).Size(1000)));
-
-                sd = sd.Sort(x => BuildSort(model));
-
-                //var range = PagerHelper.GetQueryRange(model.page, model.pagesize);
-                //sd = sd.Skip(range[0]).Take(range[1]);
-                sd = sd.QueryPage_(model.page, model.pagesize);
-
-                response = client.Search<ProductListV2>(x => sd);
-
-                var mx = response.Aggs.Max("");
-
-                return true;
-            });
-            if (response == null || !response.IsValid || response.OriginalException != null)
-            {
-                throw new Exception("ES 挂了");
-            }
-            return response;
-        }
-
-        public void SearchProducts(SearchParamModel model)
-        {
-            var data = new PagerData<object>();
-
-            var response = SearchEsProducts(model);
-            data.ItemCount = (int)(response?.Total ?? 0);
-            var datalist = response?.Hits?.Select(x => x as Hit<ProductListV2>).Where(x => x != null).Select(x => x.Source).Where(x => x != null).ToList();
-
-            //聚合的数据
-            var aggs = GetAggs(response);
-            data.DataList = ConvertHelper.NotNullList(data.DataList);
-        }
-
-        /// <summary>
-        /// just for example
-        /// </summary>
-        [ElasticsearchType(IdProperty = "UKey", Name = "ProductList")]
-        public class ProductListV2 : IElasticSearchIndex
-        {
-            [String(Name = "UKey", Index = FieldIndexOption.NotAnalyzed)]
-            public string UKey { get; set; }
-
-            [String(Name = "ProductId", Index = FieldIndexOption.NotAnalyzed)]
-            public string ProductId { get; set; }
-
-            [String(Name = "TraderId", Index = FieldIndexOption.NotAnalyzed)]
-            public string TraderId { get; set; }
-
-            [String(Name = "PlatformCatalogId", Index = FieldIndexOption.NotAnalyzed)]
-            public string PlatformCatalogId { get; set; }
-
-            [String(Name = "BrandId", Index = FieldIndexOption.NotAnalyzed)]
-            public string BrandId { get; set; }
-
-            [Number(Name = "PAvailability", Index = NonStringIndexOption.NotAnalyzed)]
-            public int PAvailability { get; set; }
-
-            [Number(Name = "PIsRemove", Index = NonStringIndexOption.NotAnalyzed)]
-            public int PIsRemove { get; set; }
-
-            [Number(Name = "UpAvailability", Index = NonStringIndexOption.NotAnalyzed)]
-            public int UpAvailability { get; set; }
-
-            [Number(Name = "UpIsRemove", Index = NonStringIndexOption.NotAnalyzed)]
-            public int UpIsRemove { get; set; }
-
-            [String(Name = "UserSku", Index = FieldIndexOption.NotAnalyzed)]
-            public string UserSku { get; set; }
-
-            [Number(Name = "IsGroup", Index = NonStringIndexOption.NotAnalyzed)]
-            public int IsGroup { get; set; }
-
-            [Number(Name = "UpiId", Index = NonStringIndexOption.NotAnalyzed)]
-            public int UpiId { get; set; }
-
-            /// <summary>
-            /// 销量
-            /// </summary>
-            [Number(Name = "SalesVolume", Index = NonStringIndexOption.NotAnalyzed)]
-            public int SalesVolume { get; set; }
-
-            /// <summary>
-            /// 是否有货
-            /// </summary>
-            [Number(Name = "InventoryStatus", Index = NonStringIndexOption.NotAnalyzed)]
-            public int InventoryStatus { get; set; }
-
-
-            [Number(Name = "SalesPrice", Index = NonStringIndexOption.NotAnalyzed)]
-            public decimal SalesPrice { get; set; }
-
-            [String(Name = "ShopName", Analyzer = "ik_max_word", SearchAnalyzer = "ik_max_word")]
-            public string ShopName { get; set; }
-
-            [String(Name = "ShopNamePinyin", Analyzer = "pinyin_analyzer", SearchAnalyzer = "pinyin_analyzer")]
-            public string ShopNamePinyin { get; set; }
-
-            [String(Name = "SeachTitle", Analyzer = "ik_max_word", SearchAnalyzer = "ik_max_word")]
-            public string SeachTitle { get; set; }
-
-            [Date(Name = "UpdatedDate")]
-            public DateTime UpdatedDate { get; set; }
-
-            [String(Name = "ShowCatalogIdList", Index = FieldIndexOption.NotAnalyzed)]
-            public string[] ShowCatalogIdList { get; set; }
-
-            [String(Name = "PlatformCatalogIdList", Index = FieldIndexOption.NotAnalyzed)]
-            public string[] PlatformCatalogIdList { get; set; }
-
-            [String(Name = "ProductAttributes", Index = FieldIndexOption.NotAnalyzed)]
-            public string[] ProductAttributes { get; set; }
-
-            [GeoPoint(Name = nameof(Location), LatLon = true, GeoHash = true, Validate = true)]
-            public GeoLocation Location { get; set; }
-
-            [GeoShape(Name = nameof(Area))]
-            public GeoLocation Area { get; set; }
-        }
-
-        public class SearchParamModel
-        {
-            public string qs { get; set; }
-            public string trader { get; set; }
-            public string brand { get; set; }
-            public string catalog { get; set; }
-            public string sys_coupon { get; set; }
-            public string user_coupon { get; set; }
-            public string attr { get; set; }
-            public decimal min_price { get; set; }
-            public decimal max_price { get; set; }
-            public string province { get; set; }
-            public string order_rule { get; set; }
-            public int page { get; set; }
-            public int pagesize { get; set; }
-            public bool isSelf { get; set; }
-            public bool isPost { get; set; }
-            public bool isGroup { get; set; }
-            public bool hidePrice { get; set; }
-            public string CustomerType { get; set; }
-            public string LoginUserID { get; set; }
-        }
-
-        public class AttrParam
-        {
-            public virtual string UID { get; set; }
-
-            public virtual string value { get; set; }
-        }
     }
 }

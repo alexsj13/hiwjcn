@@ -1,5 +1,5 @@
 ﻿using Dal.User;
-using Lib.api;
+using Lib.extra.api;
 using Lib.data;
 using Lib.events;
 using Lib.extension;
@@ -18,6 +18,15 @@ using System.Linq;
 using Lib.mvc;
 using Lib.mvc.attr;
 using Lib.log;
+using Lib.storage;
+using WebCore.MvcLib.Controller;
+using Hiwjcn.Core.Data;
+using System.Text;
+using Nest;
+using Hiwjcn.Bll;
+using Hiwjcn.Core.Domain.Auth;
+using Lib.data.elasticsearch;
+using Lib.data.redis;
 
 namespace Hiwjcn.Web.Controllers
 {
@@ -28,21 +37,121 @@ namespace Hiwjcn.Web.Controllers
         public virtual string Key { get; set; }
     }
 
-    public class TestController : WebCore.MvcLib.Controller.UserBaseController
+    public class TestController : UserBaseController
     {
-        private IEventPublisher _IEventPublisher { get; set; }
-        public TestController(IEventPublisher pub)
+        private readonly IEventPublisher _IEventPublisher;
+        private readonly Lib.data.IRepository<AuthClient> _clientRepo;
+
+        public TestController(
+            IEventPublisher pub,
+            Lib.data.IRepository<AuthClient> _clientRepo)
         {
             this._IEventPublisher = pub;
+            this._clientRepo = _clientRepo;
 
             this._IEventPublisher.Publish("发布一个垃圾消息");
         }
 
+        /// <summary>
+        /// 不会卡死
+        /// </summary>
+        /// <returns></returns>
+        public ActionResult mimimi1()
+        {
+            var data = AsyncHelper_.RunSync(() => this._clientRepo.GetListAsync(null));
+            return GetJson(data);
+        }
+
+        /// <summary>
+        /// 不会卡死
+        /// </summary>
+        /// <returns></returns>
+        public ActionResult mimimi2()
+        {
+            var data = Lib.helper.AsyncHelper.RunSync(() => this._clientRepo.GetListAsync(null));
+            return GetJson(data);
+        }
+
+        /// <summary>
+        /// 卡死
+        /// </summary>
+        /// <returns></returns>
+        public ActionResult mimimi3()
+        {
+            var data = this._clientRepo.GetListAsync(null).Result;
+            return GetJson(data);
+        }
+
+        public ActionResult excel()
+        {
+            return RunAction(() =>
+            {
+                using (var db = new QPLEntityDB())
+                {
+                    var list = db.UserInfo.Take(1000).ToList();
+                    var data = Lib.io.ExcelHelper.ObjectToExcel(list, "用户列表");
+
+                    return File(data, Lib.io.ExcelHelper.ContentType, $"用户列表导出-{DateTime.Now.ToDateTimeString()}.xls");
+                }
+            });
+        }
+
         public ActionResult es_log()
         {
-            new Exception($"es保存错误日志{Com.GetRandomNumString()}").AddErrorLog("es_error");
-            new Exception($"es保存错误日志{Com.GetRandomNumString()}").AddLog("ES日志");
+            foreach (var i in Com.Range(50))
+            {
+                $"业务日志{i}".AddBusinessInfoLog();
+                $"警告日志{i}".AddBusinessWarnLog();
+                //new Exception().AddErrorLog();
+            }
             return Content("ok");
+        }
+
+        [ValidateSign]
+        public ActionResult sign()
+        {
+            return Content("");
+        }
+
+        public ActionResult qiniu()
+        {
+            var data = QiniuHelper.FindEntry("fas");
+            return Content("");
+        }
+
+        public ActionResult UView()
+        {
+            return View();
+        }
+
+        public ActionResult P()
+        {
+            return Content(this.X.context.PostAndGet().ToUrlParam());
+        }
+
+        public class ppp
+        {
+            public string name { get; set; }
+            public int age { get; set; }
+        }
+
+        public ActionResult pj(ppp pp)
+        {
+            if (pp != null)
+            {
+                return GetJson(pp);
+            }
+            return Content("no data");
+        }
+
+        public ActionResult err()
+        {
+            return RunAction(() =>
+            {
+                int? page = null;
+
+                return Content((page ?? throw new Exception("fasdfasd")).ToString());
+            });
         }
 
         public async Task<ActionResult> es_log_list(string q)
@@ -261,7 +370,7 @@ namespace Hiwjcn.Web.Controllers
             }
             catch (Exception e)
             {
-                //
+                e.AddErrorLog();
             }
             return View();
         }
@@ -315,7 +424,7 @@ namespace Hiwjcn.Web.Controllers
             });
         }
 
-        [PermissionVerify()]
+        [PageAuth(Permission = "auth_manage.order,auth_manage.user", Scope = "order")]
         public ActionResult WJ()
         {
             var str = Com.GetUUID();
@@ -330,5 +439,27 @@ namespace Hiwjcn.Web.Controllers
             return Content(key);
         }
 
+        [ElasticsearchType(IdProperty = nameof(UID), Name = nameof(SuggestTest))]
+        public class SuggestTest : CompletionSuggestIndexBase
+        {
+            [String(Name = nameof(UID), Index = FieldIndexOption.NotAnalyzed)]
+            public virtual string UID { get; set; }
+
+            [String(Name = nameof(SearchTitle), Analyzer = "ik_max_word", SearchAnalyzer = "ik_max_word")]
+            public string SearchTitle { get; set; }
+        }
+
+        public async Task<ActionResult> suggest(string q)
+        {
+            return await RunActionAsync(async () =>
+            {
+                var client = ElasticsearchClientManager.Instance.DefaultClient.CreateClient();
+                var index = "a_suggest_test_index";
+
+                var list = await client.SimpleCompletionSuggest<SuggestTest>(index, q);
+
+                return GetJson(list);
+            });
+        }
     }
 }

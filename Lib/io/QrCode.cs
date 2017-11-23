@@ -1,61 +1,140 @@
-﻿using com.google.zxing;
-using com.google.zxing.common;
-using com.google.zxing.qrcode.decoder;
-using Lib.helper;
+﻿using Lib.helper;
+using Lib.extension;
 using System;
 using System.Collections;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using ZXing;
+using ZXing.Common;
+using ZXing.QrCode;
+using ZXing.Rendering;
+using ImageProcessor;
+using ImageProcessor.Imaging.Formats;
+using ImageProcessor.Imaging;
 
 namespace Lib.io
 {
     /// <summary>
-    /// Summary description for QrCode
+    /// 生成二维码和条码
     /// </summary>
     public class QrCode
     {
+        public const int QRCODE_SIZE = 230;
+        public const int BARCODE_SIZE_WIDTH = 300;
+        public const int BARCODE_SIZE_HEIGHT = 100;
+
+        public string Charset { private get; set; }
+        public ImageFormat Formart { private get; set; }
+        public int? Margin { private get; set; }
+
+        public string _charset { get => this.Charset ?? "UTF-8"; }
+        public ImageFormat _formart { get => this.Formart ?? ImageFormat.Png; }
+        public int _margin { get => this.Margin ?? 1; }
+
         /// <summary>
-        /// 生成二维码的bitmap
+        /// 二维码
         /// </summary>
-        /// <param name="content"></param>
-        /// <param name="size"></param>
-        /// <param name="img_path"></param>
-        /// <returns></returns>
-        private Bitmap GetBitmap(string content, int size = 230, string img_path = null)
+        public byte[] GetQrCodeBytes(string content, int size = QRCODE_SIZE)
         {
             content = ConvertHelper.GetString(content);
 
-            var writer = new MultiFormatWriter();
-            //参数(如果不把容错能力设置高一些，添加logo后就无法识别)
-            var hints = new Hashtable();
-            hints.Add(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);//容错能力
-            hints.Add(EncodeHintType.CHARACTER_SET, "UTF-8");//字符集
-            var byteMatrix = writer.encode(content, BarcodeFormat.QR_CODE, size, size, hints);
-            //生成bitmap
-            var bm = byteMatrix.ToBitmap();
-            /*
-             var bm = new Bitmap(size, size, PixelFormat.Format32bppArgb);
-            for (int x = 0; x < size; ++x)
+            var option = new QrCodeEncodingOptions()
             {
-                for (int y = 0; y < size; ++y)
+                CharacterSet = this._charset,
+                DisableECI = true,
+                ErrorCorrection = ZXing.QrCode.Internal.ErrorCorrectionLevel.H,
+                Width = size,
+                Height = size,
+                Margin = this._margin
+            };
+
+            var writer = new BarcodeWriter()
+            {
+                Format = BarcodeFormat.QR_CODE,
+                Options = option
+            };
+
+            //生成bitmap
+            using (var bm = writer.Write(content))
+            {
+                return bm.ToBytes(this._formart);
+            }
+        }
+
+        /// <summary>
+        /// 条码
+        /// </summary>
+        public byte[] GetBarCodeBytes(string content, int width = BARCODE_SIZE_WIDTH, int height = BARCODE_SIZE_HEIGHT)
+        {
+            content = ConvertHelper.GetString(content);
+
+            var options = new QrCodeEncodingOptions()
+            {
+                CharacterSet = this._charset,
+                Width = width,
+                Height = height,
+                Margin = this._margin,
+                // 是否是纯码，如果为 false，则会在图片下方显示数字
+                PureBarcode = false,
+            };
+
+            var writer = new BarcodeWriter()
+            {
+                Format = BarcodeFormat.CODE_128,
+                Options = options
+            };
+
+            using (var bm = writer.Write(content))
+            {
+                return bm.ToBytes(this._formart);
+            }
+        }
+
+        /// <summary>
+        /// 识别二维码
+        /// </summary>
+        public string DistinguishQrImage(byte[] b)
+        {
+            using (var stream = new MemoryStream(b))
+            {
+                using (var bm = new Bitmap(stream))
                 {
-                    bm.SetPixel(x, y, byteMatrix.get_Renamed(x, y) != -1 ? Color.Black : Color.White);
+                    var reader = new BarcodeReader();
+                    reader.Options = new DecodingOptions()
+                    {
+                        CharacterSet = this._charset,
+                        TryHarder = true
+                    };
+                    var res = reader.Decode(bm);
+                    return res.Text;
                 }
             }
-             */
-            //如果有小图片就绘制
-            if (ValidateHelper.IsPlumpString(img_path))
+        }
+    }
+
+    public static class QrCodeExtension
+    {
+        /// <summary>
+        /// 识别二维码
+        /// </summary>
+        public static string DistinguishQrImage(this QrCode coder, string img_path) =>
+            coder.DistinguishQrImage(File.ReadAllBytes(img_path));
+
+        /// <summary>
+        /// 带图标二维码
+        /// </summary>
+        public static byte[] GetQrCodeWithIconBytes(this QrCode coder,
+            string content, string icon_path, int size = QrCode.QRCODE_SIZE)
+        {
+            if (!File.Exists(icon_path)) { throw new Exception("二维码水印图片不存在"); }
+            var bs = coder.GetQrCodeBytes(content, size);
+
+            using (var bm = ConvertHelper.BytesToBitmap(bs))
             {
-                if (!File.Exists(img_path))
-                {
-                    throw new Exception("二维码水印图片不存在");
-                }
-                //如果图片已经有被索引的像素，就删除原来的bm，重新生成
-                bm = ImageHelper.RemovePixelIndexed(bm);
                 using (var g = Graphics.FromImage(bm))
                 {
-                    using (var logo = Image.FromFile(img_path))
+                    using (var logo = Image.FromFile(icon_path))
                     {
                         using (var smallLogo = logo.GetThumbnailImage(bm.Width / 5, bm.Height / 5, null, IntPtr.Zero))
                         {
@@ -64,66 +143,92 @@ namespace Lib.io
                         }
                     }
                 }
-            }
-            return bm;
-        }
-
-        public byte[] GetBitmapBytes(string content, int size = 230, string img_path = null)
-        {
-            using (var bm = GetBitmap(content, size, img_path))
-            {
-                return ConvertHelper.BitmapToBytes(bm);
-            }
-        }
-
-        public void WriteToFile(string content, string file_path, string img_path = null)
-        {
-            using (var bm = this.GetBitmap(content, img_path: img_path))
-            {
-                bm.Save(file_path, ImageFormat.Png);
+                return bm.ToBytes(coder._formart);
             }
         }
 
         /// <summary>
-        /// 识别二维码
+        /// 添加icon
         /// </summary>
-        /// <param name="b"></param>
-        /// <returns></returns>
-        private string DistinguishQrImage(Bitmap bm)
+        public static byte[] AddIcon(this QrCode coder, byte[] bs, string icon_path)
         {
-            if (bm == null)
+            using (var bm = ConvertHelper.BytesToBitmap(bs))
             {
-                throw new Exception("bitmap is null");
-            }
-            var source = new RGBLuminanceSource(bm, bm.Width, bm.Height);
-            var bbm = new BinaryBitmap(new HybridBinarizer(source));
-            var result = new MultiFormatReader().decode(bbm);
-            return result.Text;
-        }
-        /// <summary>
-        /// 识别二维码
-        /// </summary>
-        /// <param name="b"></param>
-        /// <returns></returns>
-        public string DistinguishQrImage(string img_path)
-        {
-            using (var bm = new Bitmap(img_path))
-            {
-                return DistinguishQrImage(bm);
-            }
-        }
-        /// <summary>
-        /// 识别二维码
-        /// </summary>
-        /// <param name="b"></param>
-        /// <returns></returns>
-        public string DistinguishQrImage(byte[] b)
-        {
-            using (var stream = new MemoryStream(b))
-            {
-                using (var bm = new Bitmap(stream))
+                using (var ms = new MemoryStream())
                 {
-                    return DistinguishQrImage(bm);
+                    using (var imageFactory = new ImageFactory(preserveExifData: true))
+                    {
+                        using (var iconFactory = new ImageFactory(preserveExifData: true))
+                        {
+                            var icon = iconFactory.Load(icon_path)
+                                .Resize(new Size() { Width = bm.Width / 5, Height = bm.Height / 5 }).Image;
+
+                            var overlay = new ImageLayer()
+                            {
+                                Image = icon,
+                                Position = new Point((bm.Width - icon.Width) / 2, (bm.Height - icon.Height) / 2),
+                                Size = new Size(icon.Width, icon.Height)
+                            };
+                            imageFactory.Load(bm)
+                                        .Overlay(overlay)
+                                        .Format(new JpegFormat { Quality = 100 })
+                                        .Save(ms);
+                            return ms.ToArray();
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 随机调色
+        /// </summary>
+        public static byte[] AddRandomHue(this QrCode coder, byte[] bs)
+        {
+            using (var ms = new MemoryStream())
+            {
+                using (var factory = new ImageFactory(preserveExifData: false))
+                {
+                    var ran = new Random((int)DateTime.Now.Ticks);
+
+                    factory.Load(bs).Hue(ran.RealNext(360 - 1)).Save(ms);
+                }
+
+                return ms.ToArray();
+            }
+        }
+
+        /// <summary>
+        /// 给二维码添加背景图片
+        /// </summary>
+        public static byte[] AddBackgroundImage(this QrCode coder, byte[] bs, byte[] background,
+            (double width_scale, double height_scale)? scale = null)
+        {
+            scale = scale ?? (1.5, 1.5);
+
+            using (var bg = ConvertHelper.BytesToBitmap(background))
+            {
+                using (var qr = ConvertHelper.BytesToBitmap(bs))
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        using (var factory = new ImageFactory(preserveExifData: false))
+                        {
+                            var bg_size = new Size()
+                            {
+                                Width = (int)(qr.Width * scale.Value.width_scale),
+                                Height = (int)(qr.Height * scale.Value.height_scale)
+                            };
+                            var image_layer = new ImageLayer()
+                            {
+                                Image = qr,
+                                Size = new Size(qr.Width, qr.Height),
+                                Position = new Point((bg.Width - qr.Width) / 2, (bg.Height - qr.Height) / 2),
+                            };
+                            factory.Load(bg).Resize(bg_size).Overlay(image_layer).Save(ms);
+                        }
+                        return ms.ToArray();
+                    }
                 }
             }
         }

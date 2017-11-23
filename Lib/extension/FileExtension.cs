@@ -6,11 +6,19 @@ using System.Threading.Tasks;
 using Lib.core;
 using Lib.helper;
 using System.IO;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace Lib.extension
 {
     public static class FileExtension
     {
+        /// <summary>
+        /// bitmap转byte数组
+        /// </summary>
+        public static byte[] ToBytes(this Bitmap bm, ImageFormat formart) =>
+            ConvertHelper.BitmapToBytes(bm, formart);
+
         /// <summary>
         /// 获取文件MD5
         /// </summary>

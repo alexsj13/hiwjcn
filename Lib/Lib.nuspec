@@ -1,11 +1,13 @@
-<?xml version="1.0"?>
+﻿<?xml version="1.0"?>
 <package >
   <metadata>
     <id>lib.com.nuget</id>
     <version>$version$</version>
     <title>公共组件库Lib</title>
     <authors>王俊</authors>
-    <iconUrl>http://hiwjcn.qiniudn.com/832910342394600995.jpg</iconUrl>
+    <iconUrl>http://hiwjcn.qiniudn.com/tools.png</iconUrl>
+    <licenseUrl>https://github.com/hiwjcn/hiwjcn</licenseUrl>
+    <projectUrl>https://github.com/hiwjcn/hiwjcn</projectUrl>
     <description>公共组件库Lib</description>
   </metadata>
 </package>

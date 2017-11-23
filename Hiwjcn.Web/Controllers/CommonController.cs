@@ -36,11 +36,11 @@ namespace Hiwjcn.Web.Controllers
             {
                 if (ValidateHelper.IsPlumpString(lang))
                 {
-                    CookieHelper.SetCookie(this.X.context, LanguageHelper.CookieName, lang);
+                    this.X.context.SetCookie(LanguageHelper.CookieName, lang);
                 }
                 else
                 {
-                    CookieHelper.RemoveCookie(this.X.context, new string[] { LanguageHelper.CookieName });
+                    this.X.context.RemoveCookie(new string[] { LanguageHelper.CookieName });
                 }
                 return GetJsonRes("");
             });
@@ -69,7 +69,7 @@ namespace Hiwjcn.Web.Controllers
 
                 var file_url = string.Empty;
                 var file_name = string.Empty;
-                var qiniumsg = _IUpFileService.UploadFileAfterCheckRepeat(new FileInfo(model.FilePath), this.X.LoginUser.IID, ref file_url, ref file_name);
+                var qiniumsg = _IUpFileService.UploadFileAfterCheckRepeat(new FileInfo(model.FilePath), this.X.LoginUser.UserID, ref file_url, ref file_name);
 
                 if (ValidateHelper.IsPlumpString(qiniumsg)) { return GetJsonRes(qiniumsg); }
 
@@ -178,7 +178,6 @@ namespace Hiwjcn.Web.Controllers
         [ValidateInput(false)]
         public ActionResult SendMailAction(string name, string email, string subject, string content)
         {
-            this.ErrorResult = GetJsonRes("发生错误，请检查服务器配置");
             return RunAction(() =>
             {
                 if (!ValidateHelper.IsAllPlumpString(name, email, subject, content))
@@ -244,8 +243,9 @@ namespace Hiwjcn.Web.Controllers
                 byte[] bs = code.GetImageBytes();
                 if (!ValidateHelper.IsPlumpList(bs)) { return Content("没有数据"); }
 
-                ResponseHelper.SetResponseNoCache(this.X.context.Response);
-                SessionHelper.SetSession(this.X.context.Session, key, code.Code);
+                this.X.context.Response.SetResponseNoCache();
+
+                this.X.context.Session.SetSession(key, code.Code);
                 return File(bs, "image/Png");
             });
         }
@@ -254,7 +254,7 @@ namespace Hiwjcn.Web.Controllers
         /// 生成二维码
         /// </summary>
         /// <returns></returns>
-        public ActionResult QrCode(string con, string i)
+        public ActionResult QrCode(string con, string i, string bar, string hue)
         {
             return RunAction(() =>
             {
@@ -268,9 +268,18 @@ namespace Hiwjcn.Web.Controllers
                 {
                     img = Server.MapPath("~/Static/image/no_data.png");
                 }
-                var b = qr.GetBitmapBytes(con, img_path: img);
-                if (!ValidateHelper.IsPlumpList(b)) { return Content("err"); }
-                ResponseHelper.SetResponseNoCache(this.X.context.Response);
+                var b = ValidateHelper.IsPlumpString(bar) ?
+                qr.GetBarCodeBytes(con) : qr.GetQrCodeWithIconBytes(con, icon_path: img);
+
+                if (ValidateHelper.IsPlumpString(hue))
+                {
+                    b = qr.AddRandomHue(b);
+                }
+
+                if (!ValidateHelper.IsPlumpList(b)) { return Content("bytes is empty"); }
+
+                this.X.context.Response.SetResponseNoCache();
+
                 return File(b, "image/Png");
             });
         }
@@ -296,7 +305,9 @@ namespace Hiwjcn.Web.Controllers
             {
                 var b = Lib.io.IOHelper.GetFileBytes(id);
                 if (!ValidateHelper.IsPlumpList<byte>(b)) { return Content("empty"); }
-                ResponseHelper.SetResponseNoCache(this.X.context.Response);
+
+                this.X.context.Response.SetResponseNoCache();
+
                 return File(b, "Image/Png");
             });
         }

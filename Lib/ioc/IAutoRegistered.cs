@@ -10,4 +10,19 @@ namespace Lib.ioc
     /// autofac 自动查找注册
     /// </summary>
     public interface IAutoRegistered { }
+
+    /// <summary>
+    /// 单例
+    /// </summary>
+    public class SingleInstanceAttribute : Attribute { }
+
+    /// <summary>
+    /// 拦截
+    /// </summary>
+    public class InterceptInstanceAttribute : Attribute { }
+
+    /// <summary>
+    /// 不注册IOC
+    /// </summary>
+    public class NotRegIocAttribute : Attribute { }
 }

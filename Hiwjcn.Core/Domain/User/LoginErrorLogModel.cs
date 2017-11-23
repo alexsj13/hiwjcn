@@ -2,27 +2,24 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Lib.infrastructure.entity;
 
 namespace WebLogic.Model.User
 {
-    [Table("wp_login_log")]
+    [Serializable]
+    [Table("account_login_log")]
     public class LoginErrorLogModel : BaseEntity
     {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Column("log_id")]
-        public virtual int LogID { get; set; }
-
-        [Column("login_key")]
+        [MaxLength(200)]
         public virtual string LoginKey { get; set; }
 
-        [Column("login_pwd")]
+        [MaxLength(200)]
         public virtual string LoginPwd { get; set; }
 
-        [Column("login_ip")]
+        [MaxLength(50)]
         public virtual string LoginIP { get; set; }
 
-        [Column("login_time")]
-        public virtual DateTime LoginTime { get; set; }
+        [MaxLength(500)]
+        public virtual string ErrorMsg { get; set; }
     }
 }

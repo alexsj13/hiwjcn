@@ -1,199 +1,242 @@
 ﻿using Lib.core;
 using Lib.helper;
+using Lib.extension;
 using System;
+using System.Linq;
 using System.Web;
 using System.Web.SessionState;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.Collections.ObjectModel;
 
 namespace Lib.mvc.user
 {
-    public interface ILoginStatus
+    /// <summary>
+    /// 对token加密
+    /// </summary>
+    public interface CookieTokenEncryption
     {
-        //COOKIE
-        string COOKIE_LOGIN_UID { get; }
-        //TOKEN
-        string COOKIE_LOGIN_TOKEN { get; }
-        //SESSION
-        string LOGIN_USER_SESSION { get; }
-        //DOMAIN
-        string COOKIE_DOMAIN { get; }
-        //cookie过期的时间
-        int CookieExpiresMinutes { get; }
+        string Encrypt(string data);
+        string Decrypt(string data);
+    }
 
-        string GetCookieUID(HttpContext context = null);
+    /// <summary>
+    /// 可以用
+    /// </summary>
+    public class DefaultCookieTokenEncryption : CookieTokenEncryption
+    {
+        class EncryptEntry
+        {
+            public string Token { get; set; }
+            public string Salt { get; set; }
+            public string Result { get; set; }
+        }
 
-        string GetCookieToken(HttpContext context = null);
+        private readonly int TrashLen = 2;
 
-        void SetUserLogin(HttpContext context = null, LoginUserInfo loginuser = null);
+        public DefaultCookieTokenEncryption()
+        {
+            //
+        }
 
-        void SetUserLogout(HttpContext context = null);
+        private string CreateResult(string token, string salt)
+        {
+            return $"{token}={nameof(DefaultCookieTokenEncryption)}={salt}".ToMD5().ToLower();
+        }
 
-        void DeleteExtraCookie(HttpContext context = null);
+        public string Decrypt(string data)
+        {
+            try
+            {
+                if (data.Length <= this.TrashLen * 2) { return string.Empty; }
+                //->remove trash
+                data = data.Substring(this.TrashLen, data.Length - this.TrashLen * 2);
+                //->reverse
+                data = data.ToCharArray().Reverse_().AsString();
+                //->entity
+                var entry = data.Base64ToString().JsonToEntity<EncryptEntry>();
+                if (entry.Result != this.CreateResult(entry.Token, entry.Salt))
+                {
+                    return string.Empty;
+                }
+                return entry.Token;
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
 
-        void DeleteCookie(HttpContext context = null, bool cookies_with_domain = true);
+        public string Encrypt(string data)
+        {
+            var ran = new Random((int)DateTime.Now.Ticks);
 
-        LoginUserInfo GetLoginUser(HttpContext context = null);
+            var chars = Com.Range((int)'a', (int)'z').Select(x => (char)x).ToList();
+            chars.AddRange(Com.Range((int)'A', (int)'Z').Select(x => (char)x));
+            chars.AddRange(new char[] { '+', '-', '*', '/', '=' });
 
+            var salt = ran.Sample(chars, ran.RealNext(3, 6)).AsString();
+            var entry = new EncryptEntry()
+            {
+                Token = data,
+                Salt = salt,
+            };
+            entry.Result = this.CreateResult(entry.Token, entry.Salt);
+            //->base64
+            data = entry.ToJson().StringToBase64();
+            //->reverse
+            data = data.ToCharArray().Reverse_().AsString();
+            //->add trash
+            data = ran.Sample(chars, this.TrashLen).AsString() + data + ran.Sample(chars, this.TrashLen).AsString();
+
+            return data;
+        }
+    }
+
+    public class CookieTokenDesEncryption : CookieTokenEncryption
+    {
+        private const string Key = "LiuJineagel=";
+
+        public string Decrypt(string data)
+        {
+            data = ConvertHelper.GetString(data);
+            return SecureHelper.DESDecrypt(data, Key);
+        }
+
+        public string Encrypt(string data)
+        {
+            data = ConvertHelper.GetString(data);
+            return SecureHelper.DESEncrypt(data, Key);
+        }
     }
 
     /// <summary>
     /// 登录状态存取
     /// </summary>
-    public class LoginStatus : ILoginStatus, IRequiresSessionState
+    public class LoginStatus : IRequiresSessionState
     {
+        private readonly CookieTokenEncryption _CookieTokenEncryption;
         //COOKIE
-        public string COOKIE_LOGIN_UID { get; private set; }
+        private readonly string COOKIE_LOGIN_UID;
         //TOKEN
-        public string COOKIE_LOGIN_TOKEN { get; private set; }
+        private readonly string COOKIE_LOGIN_TOKEN;
         //SESSION
-        public string LOGIN_USER_SESSION { get; private set; }
+        private readonly string LOGIN_USER_SESSION;
         //DOMAIN
-        public string COOKIE_DOMAIN { get; private set; }
+        private readonly string COOKIE_DOMAIN;
         //cookie过期的时间
-        public int CookieExpiresMinutes { get; private set; }
+        private readonly int CookieExpiresMinutes;
 
         public LoginStatus() : this("USER_UID", "USER_TOKEN", "LOGIN_USER_SESSION", ConfigHelper.Instance.CookieDomain)
         { }
 
-        public LoginStatus(string uid, string token, string session, string domain)
+        public LoginStatus(string uid, string token, string session,
+            string domain = null,
+            CookieTokenEncryption _CookieTokenEncryption = null)
         {
-            this.COOKIE_LOGIN_UID = uid;
-            this.COOKIE_LOGIN_TOKEN = token;
             this.COOKIE_DOMAIN = domain;
+            var prefix = string.Empty;
+            if (!ValidateHelper.IsPlumpString(this.COOKIE_DOMAIN))
+            {
+                prefix = "_";
+            }
+
+            this.COOKIE_LOGIN_UID = prefix + uid;
+            this.COOKIE_LOGIN_TOKEN = prefix + token;
             if (this.CookieExpiresMinutes <= 0)
             {
                 this.CookieExpiresMinutes = ConfigHelper.Instance.CookieExpiresMinutes;
             }
 
             this.LOGIN_USER_SESSION = session;
+
+            this._CookieTokenEncryption = _CookieTokenEncryption ?? new DefaultCookieTokenEncryption();
         }
 
-        /// <summary>
-        /// 获取用户cookie的登陆账号和密码
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
         public string GetCookieUID(HttpContext context = null)
         {
-            context = GetContext(context);
+            context = this.GetContext(context);
 
-            return CookieHelper.GetCookie(context, COOKIE_LOGIN_UID);
+            return context.GetCookie(this.COOKIE_LOGIN_UID);
+        }
+
+        public string GetCookieTokenRaw(HttpContext context = null)
+        {
+            context = this.GetContext(context);
+
+            return context.GetCookie(this.COOKIE_LOGIN_TOKEN);
         }
 
         public string GetCookieToken(HttpContext context = null)
         {
-            context = GetContext(context);
+            var data = this.GetCookieTokenRaw(context);
+            if (!ValidateHelper.IsPlumpString(data))
+            {
+                return string.Empty;
+            }
 
-            return CookieHelper.GetCookie(context, COOKIE_LOGIN_TOKEN);
+            return this._CookieTokenEncryption.Decrypt(data);
         }
 
-        /// <summary>
-        /// 登陆信息保存到session和cookie
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="loginuser"></param>
-        /// <returns></returns>
         public void SetUserLogin(HttpContext context = null, LoginUserInfo loginuser = null)
         {
-            context = GetContext(context);
+            context = this.GetContext(context);
             if (loginuser == null) { throw new Exception("登陆状态为空"); }
-            if (CookieExpiresMinutes <= 0) { throw new Exception("cookie过期时间必须大于0，请修改配置"); }
+            if (this.CookieExpiresMinutes <= 0) { throw new Exception("cookie过期时间必须大于0，请修改配置"); }
 
             if (!ValidateHelper.IsPlumpString(loginuser.UserID))
             {
-                throw new Exception("记录登录状态失败，缺少userid");
+                throw new Exception($"记录登录状态失败，缺少{nameof(loginuser.UserID)}");
             }
             if (!ValidateHelper.IsPlumpString(loginuser.LoginToken))
             {
-                throw new Exception("记录登录状态失败，缺少token");
+                throw new Exception($"记录登录状态失败，缺少{nameof(loginuser.LoginToken)}");
             }
 
             //保存到session
-            SessionHelper.SetSession(context.Session, LOGIN_USER_SESSION, loginuser);
+            context.Session.SetObjectAsJson(this.LOGIN_USER_SESSION, loginuser);
             //保存到cookie
-            if (GetCookieUID() != loginuser.UserID)
+            if (this.GetCookieUID() != loginuser.UserID)
             {
-                CookieHelper.SetCookie(context, COOKIE_LOGIN_UID, loginuser.UserID, domain: COOKIE_DOMAIN,
-                        expires_minutes: CookieExpiresMinutes);
+                context.SetCookie(this.COOKIE_LOGIN_UID, loginuser.UserID,
+                    domain: this.COOKIE_DOMAIN,
+                    expires_minutes: this.CookieExpiresMinutes);
             }
-            if (GetCookieToken() != loginuser.LoginToken)
+            if (this.GetCookieToken() != loginuser.LoginToken)
             {
-                CookieHelper.SetCookie(context, COOKIE_LOGIN_TOKEN, loginuser.LoginToken, domain: COOKIE_DOMAIN,
-                    expires_minutes: CookieExpiresMinutes);
+                var data = this._CookieTokenEncryption.Encrypt(loginuser.LoginToken);
+
+                context.SetCookie(this.COOKIE_LOGIN_TOKEN, data,
+                    domain: this.COOKIE_DOMAIN,
+                    expires_minutes: this.CookieExpiresMinutes);
             }
         }
 
-        /// <summary>
-        /// 退出登录
-        /// </summary>
-        /// <param name="context"></param>
         public void SetUserLogout(HttpContext context = null)
         {
-            context = GetContext(context);
+            context = this.GetContext(context);
 
-            SessionHelper.RemoveSession(context.Session, LOGIN_USER_SESSION);
+            context.Session.RemoveSession(this.LOGIN_USER_SESSION);
             //清空其他cookie操作
             //CookieHelper.RemoveResponseCookies(context, new string[] { COOKIE_LOGIN_UID, COOKIE_LOGIN_TOKEN });
-            if (ValidateHelper.IsPlumpString(COOKIE_DOMAIN))
+            if (ValidateHelper.IsPlumpString(this.GetCookieTokenRaw()))
             {
-                //删除带域名的cookie
-                DeleteCookie(context, true);
+                context.RemoveCookie(this.COOKIE_LOGIN_TOKEN, domain: this.COOKIE_DOMAIN);
             }
-            else
+            if (ValidateHelper.IsPlumpString(this.GetCookieUID()))
             {
-                //删除不带域名的cookie
-                DeleteCookie(context, false);
+                context.RemoveCookie(this.COOKIE_LOGIN_UID, domain: this.COOKIE_DOMAIN);
             }
         }
 
-        /// <summary>
-        /// 如果有域名就删除没有域名的cookie，如果没有域名就删除有域名的cookie
-        /// </summary>
-        /// <param name="context"></param>
-        public void DeleteExtraCookie(HttpContext context = null)
-        {
-            context = GetContext(context);
-
-            if (ValidateHelper.IsPlumpString(COOKIE_DOMAIN))
-            {
-                DeleteCookie(context, false);
-            }
-            else
-            {
-                DeleteCookie(context, true);
-            }
-        }
-
-        /// <summary>
-        /// 删除cookie
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="cookies_with_domain"></param>
-        public void DeleteCookie(HttpContext context = null, bool cookies_with_domain = true)
-        {
-            context = GetContext(context);
-
-            if (cookies_with_domain)
-            {
-                CookieHelper.RemoveCookie(context, new string[] { COOKIE_LOGIN_UID, COOKIE_LOGIN_TOKEN }, domain: COOKIE_DOMAIN);
-            }
-            else
-            {
-                CookieHelper.RemoveCookie(context, new string[] { COOKIE_LOGIN_UID, COOKIE_LOGIN_TOKEN });
-            }
-        }
-
-        /// <summary>
-        /// 获取用户登录实例
-        /// </summary>
-        /// <param name="context"></param>
-        /// <returns></returns>
+        [Obsolete("即将失效")]
         public LoginUserInfo GetLoginUser(HttpContext context = null)
         {
-            context = GetContext(context);
+            context = this.GetContext(context);
 
-            var model = SessionHelper.GetSession<LoginUserInfo>(context.Session, LOGIN_USER_SESSION);
-            var cookie_uid = GetCookieUID(context);
-            var cookie_token = GetCookieToken(context);
+            var model = context.Session.GetObjectFromJsonOrDefault<LoginUserInfo>(this.LOGIN_USER_SESSION);
+            var cookie_uid = this.GetCookieUID(context);
+            var cookie_token = this.GetCookieToken(context);
 
             if (model != null && model.UserID == cookie_uid && model.LoginToken == cookie_token)
             {
@@ -202,12 +245,11 @@ namespace Lib.mvc.user
             return null;
         }
 
-        /// <summary>
-        /// 获取上下文
-        /// </summary>
-        /// <returns></returns>
         private HttpContext GetContext(HttpContext _context) => Com.TryGetContext(_context);
     }
+
+    public static class LoginStatusExtension
+    { }
 
     /// <summary>
     /// 登录状态存取工厂
@@ -220,10 +262,8 @@ namespace Lib.mvc.user
         /// <param name="key"></param>
         /// <param name="func"></param>
         /// <returns></returns>
-        private static LoginStatus CacheInstance(string key, Func<LoginStatus> func)
-        {
-            return ServerHelper.CacheInHttpContext(key, func);
-        }
+        private static LoginStatus CacheInstance(string key, Func<LoginStatus> func) =>
+            HttpContext.Current.CacheInHttpContext(key, func);
 
         private static readonly string domain = ConfigHelper.Instance.CookieDomain;
 

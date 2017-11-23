@@ -1,0 +1,8 @@
+﻿
+message User{
+	string Name=""
+}
+
+service UserService{
+	rpc User GetUserByUID(string){return User}
+}

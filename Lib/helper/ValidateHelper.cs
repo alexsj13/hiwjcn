@@ -46,6 +46,14 @@ namespace Lib.helper
     /// </summary>
     public static class ValidateHelper
     {
+
+        private static readonly Regex RegNumber = new Regex("^[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex RegNumberSign = new Regex("^[+-]?[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex RegDecimal = new Regex("^[0-9]+[.]?[0-9]+$", RegexOptions.Compiled);
+        private static readonly Regex RegDecimalSign = new Regex("^[+-]?[0-9]+[.]?[0-9]+$", RegexOptions.Compiled); //等价于^[+-]?\d+[.]?\d+$
+        private static readonly Regex RegEmail = new Regex(@"^[\w-]+(\.[\w-]+)*@[\w-]+(\.[\w-]+)+$", RegexOptions.Compiled);//w 英文字母或数字的字符串，和 [a-zA-Z0-9] 语法一样 
+        private static readonly Regex RegCHZN = new Regex("[\u4e00-\u9fa5]", RegexOptions.Compiled);
+
         /// <summary>
         /// 判断是否是邮件地址，来自nop的方法
         /// </summary>
@@ -352,39 +360,35 @@ namespace Lib.helper
         /// <summary>
         /// 判断是否是有值的list
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="list"></param>
-        /// <returns></returns>
-        public static bool IsPlumpList<T>(IList<T> list) => list?.Count > 0;
+        public static bool IsPlumpList<T>(IEnumerable<T> list) => list?.Count() > 0;
+
+        /// <summary>
+        /// 包含长度大于0的item，并把他们找出来
+        /// </summary>
+        public static bool IsPlumpListAfterFilterMeaninglessData(IEnumerable<string> list, out List<string> filtered)
+        {
+            filtered = ConvertHelper.NotNullList(list).Where(x => IsPlumpString(x)).ToList();
+            return filtered.Count > 0;
+        }
 
         /// <summary>
         /// 判断是否是有值的字典
         /// </summary>
-        /// <typeparam name="K"></typeparam>
-        /// <typeparam name="V"></typeparam>
-        /// <param name="dict"></param>
-        /// <returns></returns>
         public static bool IsPlumpDict<K, V>(IDictionary<K, V> dict) => dict?.Count > 0;
 
         /// <summary>
         /// 去除两端空格后判断是否是非空字符串
         /// </summary>
-        /// <param name="str"></param>
-        /// <returns></returns>
         public static bool IsPlumpStringAfterTrim(string str) => str?.Trim()?.Length > 0;
 
         /// <summary>
         /// 判断是否是非空字符串
         /// </summary>
-        /// <param name="str"></param>
-        /// <returns></returns>
         public static bool IsPlumpString(string str) => str?.Length > 0;
 
         /// <summary>
         /// 判断是否都是非空字符串
         /// </summary>
-        /// <param name="strs"></param>
-        /// <returns></returns>
         public static bool IsAllPlumpString(params string[] strs)
         {
             if (!IsPlumpList(strs)) { throw new Exception("至少需要一个参数"); }
@@ -394,8 +398,6 @@ namespace Lib.helper
         /// <summary>
         /// 判断数组里至少有一个非空字符串
         /// </summary>
-        /// <param name="strs"></param>
-        /// <returns></returns>
         public static bool IsAnyPlumpString(params string[] strs)
         {
             if (!IsPlumpList(strs)) { throw new Exception("至少需要一个参数"); }
@@ -406,10 +408,6 @@ namespace Lib.helper
         /// <summary>
         /// 判断字符串的长度是否在范围之内，str可以为空
         /// </summary>
-        /// <param name="str"></param>
-        /// <param name="min"></param>
-        /// <param name="max"></param>
-        /// <returns></returns>
         public static bool IsLenInRange(string str, int min, int max)
         {
             var len = str?.Length ?? 0;
@@ -419,22 +417,12 @@ namespace Lib.helper
         /// <summary>
         /// 判断两个集合是否有交集
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        /// <returns></returns>
-        public static bool HasInterSection<T>(IList<T> a, IList<T> b)
-        {
-            if (!IsPlumpList(a) || !IsPlumpList(b)) { return false; }
-            return a.Any(x => b.Contains(x));
-        }
+        public static bool HasInterSection<T>(IEnumerable<T> a, IEnumerable<T> b) => 
+            Com.GetInterSection(a, b).Count > 0;
 
         /// <summary>
         /// 判断一个对象是否是某个类型
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="obj"></param>
-        /// <returns></returns>
         public static bool Is<T>(object obj)
         {
             return obj != null && obj is T;
@@ -443,9 +431,6 @@ namespace Lib.helper
         /// <summary>
         /// 判断是相同引用
         /// </summary>
-        /// <param name="obj1"></param>
-        /// <param name="obj2"></param>
-        /// <returns></returns>
         public static bool IsReferenceEquals(object obj1, object obj2)
         {
             return object.ReferenceEquals(obj1, obj2);
@@ -454,9 +439,6 @@ namespace Lib.helper
         /// <summary>
         /// 根据attribute验证model
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="model"></param>
-        /// <returns></returns>
         [Obsolete("使用CheckEntity_")]
         public static List<string> CheckEntity<T>(T model) where T : IDBTable
         {
@@ -511,15 +493,19 @@ namespace Lib.helper
                 if (!CheckProp(prop.GetCustomAttributes<CreditCardAttribute>().FirstOrDefault(), value)) { continue; }
             }
 
-            return list.Where(x => IsPlumpString(x)).Distinct().ToList();
+            list = list.Where(x => IsPlumpString(x)).Distinct().ToList();
+
+            if (ValidateHelper.IsPlumpList(list))
+            {
+                Console.WriteLine(",".Join_(list));
+            }
+
+            return list;
         }
 
         /// <summary>
         /// 根据attribute验证model
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="model"></param>
-        /// <returns></returns>
         public static List<string> CheckEntity_<T>(T model) where T : IDBTable
         {
             var list = new List<string>();
@@ -530,14 +516,18 @@ namespace Lib.helper
             }
 
             //checker
-            Func<IEnumerable<ValidationAttribute>, object, bool> CheckProp = (validators, data) =>
+            bool CheckProp(IEnumerable<ValidationAttribute> validators, object data, PropertyInfo p)
             {
-                if (validators == null) { return true; }
-                foreach (var validator in validators)
+                foreach (var validator in ConvertHelper.NotNullList(validators))
                 {
                     if (!validator.IsValid(data))
                     {
-                        list.Add(validator.ErrorMessage);
+                        var msg = ConvertHelper.GetString(validator.ErrorMessage).Trim();
+                        if (!ValidateHelper.IsPlumpString(msg))
+                        {
+                            msg = $"字段{p.Name}未通过{validator.GetType().Name}标签的验证";
+                        }
+                        list.Add(msg);
                         return false;
                     }
                 }
@@ -550,11 +540,27 @@ namespace Lib.helper
 
                 var value = prop.GetValue(model);
 
-                if (!CheckProp(prop.GetCustomAttributes_<ValidationAttribute>(), value)) { continue; }
+                if (!CheckProp(prop.GetCustomAttributes_<ValidationAttribute>(), value, prop)) { continue; }
             }
 
-            return list.Where(x => IsPlumpString(x)).Distinct().ToList();
+            list = list.Where(x => IsPlumpString(x)).Distinct().ToList();
+
+            if (ValidateHelper.IsPlumpList(list))
+            {
+                Console.WriteLine(",".Join_(list));
+            }
+
+            return list;
         }
 
+        /// <summary>
+        /// 两个json有相同的结构
+        /// </summary>
+        /// <param name="tuple"></param>
+        /// <returns></returns>
+        public static bool SameJsonStructure(this (string, string) tuple)
+        {
+            return JsonHelper.HasSameStructure(tuple.Item1, tuple.Item2);
+        }
     }
 }

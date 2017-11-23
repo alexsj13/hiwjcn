@@ -18,6 +18,60 @@ namespace Lib.helper
     public static class Com
     {
         /// <summary>
+        /// 如果是null就new一个
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static T NewIfNull<T>(object obj) where T : new()
+        {
+            if (obj is T data)
+            {
+                return data;
+            }
+            return new T();
+        }
+
+        public static void AssertNotNull<T>(T target, string err_msg)
+        {
+            Assert(target, x => x != null, err_msg);
+        }
+
+        /// <summary>
+        /// 断言
+        /// </summary>
+        public static void Assert<T>(T target, Func<T, bool> condition, string err_msg)
+        {
+            Assert(target, condition, () => new Exception(err_msg ?? "默认的断言异常信息"));
+        }
+
+        /// <summary>
+        /// 断言
+        /// </summary>
+        public static void Assert<T, E>(T target, Func<T, bool> condition, Func<E> err)
+            where E : Exception
+        {
+            if (!condition.Invoke(target))
+            {
+                throw err.Invoke() ?? new Exception("你给老子一个空异常，是不是傻屌？");
+            }
+        }
+
+        /// <summary>
+        /// 第一个非空字符串
+        /// </summary>
+        /// <param name="strs"></param>
+        /// <returns></returns>
+        public static string FirstPlumpStrOrNot(params string[] strs) =>
+            ConvertHelper.NotNullList(strs).Where(x => ValidateHelper.IsPlumpString(x)).FirstOrDefault();
+
+        /// <summary>
+        /// 获取动态类型
+        /// </summary>
+        /// <returns></returns>
+        public static dynamic DynamicObj() => new System.Dynamic.ExpandoObject();
+
+        /// <summary>
         /// 尝试获取请求上下文
         /// </summary>
         /// <param name="_context"></param>
@@ -26,8 +80,8 @@ namespace Lib.helper
         {
             if (_context != null) { return _context; }
             var context = System.Web.HttpContext.Current;
-            if (context == null) { throw new Exception("无法获取上下文对象"); }
-            return context;
+
+            return context ?? throw new Exception("无法获取上下文对象");
         }
 
         /// <summary>
@@ -74,11 +128,11 @@ namespace Lib.helper
         {
             var dict = new Dictionary<string, object>();
 
-            var props = data.GetType().GetProperties().Where(x => x.CanRead).ToList();
-            props.ForEach(x =>
+            var props = data.GetType().GetProperties().Where(x => x.CanRead);
+            foreach (var x in props)
             {
                 dict[x.Name] = x.GetValue(data);
-            });
+            }
 
             return dict;
         }
@@ -92,6 +146,12 @@ namespace Lib.helper
         {
             var dict = new Dictionary<string, string>();
             if (!ValidateHelper.IsPlumpString(url)) { return dict; }
+
+            if (url.IndexOf('#') >= 0)
+            {
+                url = url.Split('#')[0];
+            }
+
             var url_sp = url.Split('?');
             if (!new int[] { 1, 2 }.Contains(url_sp.Length)) { throw new Exception("多问号错误"); }
             var param_part = url_sp.Length == 1 ? url_sp[0] : url_sp[1];
@@ -121,18 +181,14 @@ namespace Lib.helper
         public static List<string> GetExceptionMsgList(Exception e)
         {
             var list = new List<string>();
+
             list.Add(e?.Message);
             list.Add(e?.InnerException?.Message);
             list.Add(e?.InnerException?.InnerException?.Message);
             list.Add(e?.InnerException?.InnerException?.InnerException?.Message);
+            list.Add(e?.InnerException?.InnerException?.InnerException?.InnerException?.Message);
 
             list = list.Where(x => ValidateHelper.IsPlumpString(x)).Distinct().ToList();
-
-            if (list.Count <= 1)
-            {
-                //ef报错不在innerexception里
-                try { if (e != null) { list.Add(JsonHelper.ObjectToJson(e)); } } catch { }
-            }
 
             return list;
         }
@@ -202,7 +258,7 @@ namespace Lib.helper
         /// <typeparam name="T"></typeparam>
         /// <param name="list"></param>
         /// <returns></returns>
-        public static T[] CloneParams<T>(List<T> list) where T : DbParameter
+        public static T[] CloneParams<T>(IEnumerable<T> list) where T : DbParameter
         {
             return list.Select(x => (T)((ICloneable)x).Clone()).ToArray();
         }
@@ -235,12 +291,12 @@ namespace Lib.helper
         public static string SimpleNumber(Int64 num)
         {
             if (num < 0) { throw new Exception("数字不能小于0"); }
-            if (num < 1000) { return num.ToString(); }
-            if (num < 10000)
+            if (num < 1_000) { return num.ToString(); }
+            if (num < 10_000)
             {
-                return $"{(num / 1000.0).ToString("0.0")}k";
+                return $"{(num / 1_000.0).ToString("0.0")}k";
             }
-            return $"{(num / 10000.0).ToString("0.0")}w";
+            return $"{(num / 1_0000.0).ToString("0.0")}w";
         }
 
         /// <summary>
@@ -279,16 +335,14 @@ namespace Lib.helper
         /// <summary>
         /// 通过密码生成一个key
         /// </summary>
-        /// <param name="pass"></param>
-        /// <returns></returns>
-        public static string GetPassKey(string pass)
+        public static string GetPassKey(string pass, string salt = "密码盐")
         {
             if (!ValidateHelper.IsPlumpString(pass))
             {
                 throw new Exception("密码为空");
             }
             var str = new StringBuilder();
-            var list = (pass + "密码盐").ToArray().Select(x => (int)x).ToList();
+            var list = (pass + salt).ToArray().Select(x => (int)x).ToList();
             str.Append(list.Count());
             str.Append(list.Min());
             str.Append(list.Sum());
@@ -496,8 +550,6 @@ namespace Lib.helper
         /// <summary>
         /// 取字符串拼音首字母
         /// </summary>
-        /// <param name="value">原字符串</param>
-        /// <param name="length">所要取拼音首字母的字符数</param>
         public static string GetSpell(string value)
         {
             if (!ValidateHelper.IsPlumpString(value))
@@ -578,11 +630,7 @@ namespace Lib.helper
         /// <summary>
         /// 获取交集(不返回null)
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="a"></param>
-        /// <param name="b"></param>
-        /// <returns></returns>
-        public static List<T> GetInterSection<T>(List<T> a, List<T> b)
+        public static List<T> GetInterSection<T>(IEnumerable<T> a, IEnumerable<T> b)
         {
             if (!ValidateHelper.IsPlumpList(a) || !ValidateHelper.IsPlumpList(b)) { return new List<T>(); }
             return a.Where(x => b.Contains(x)).ToList();
@@ -670,10 +718,6 @@ namespace Lib.helper
         /// <summary>
         /// 排序
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="data"></param>
-        /// <param name="bigToSmall"></param>
-        /// <returns></returns>
         public static T[] Sort<T>(T[] data, Func<T, T, bool> changePos)
         {
             for (int i = 0; i < data.Length - 1; ++i)
@@ -692,10 +736,6 @@ namespace Lib.helper
         /// <summary>
         /// 排序方法2
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="data"></param>
-        /// <param name="changePos"></param>
-        /// <returns></returns>
         public static T[] Sort_123<T>(T[] data, Func<T, T, bool> changePos)
         {
             for (int i = 0; i < data.Length - 1; ++i)
@@ -714,10 +754,6 @@ namespace Lib.helper
         /// <summary>
         /// 排序
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="data"></param>
-        /// <param name="changePos"></param>
-        /// <returns></returns>
         public static List<T> SortList<T>(List<T> data, Func<T, T, bool> changePos)
         {
             return Sort(data.ToArray(), changePos).ToList();
@@ -726,8 +762,6 @@ namespace Lib.helper
         /// <summary>
         /// 字典变url格式(a=1&b=3)
         /// </summary>
-        /// <param name="data"></param>
-        /// <returns></returns>
         public static string DictToUrlParams(Dictionary<string, string> data)
         {
             if (!ValidateHelper.IsPlumpDict(data)) { return string.Empty; }
@@ -738,19 +772,18 @@ namespace Lib.helper
         /// <summary>
         /// 反转list
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="list"></param>
-        /// <returns></returns>
-        public static List<T> ReversalList<T>(List<T> list)
+        public static void ReversalList<T>(ref List<T> list)
         {
-            if (list?.Count < 2) { return list; }
+            if (list == null) { throw new ArgumentNullException(nameof(list)); }
+            if (list.Count < 2) { return; }
             for (int i = 0; i < list.Count / 2; ++i)
             {
                 var temp = list[i];
-                list[i] = list[list.Count - 1 - i];
-                list[list.Count - 1 - i] = temp;
+                var second_index = list.Count - 1 - i;
+
+                list[i] = list[second_index];
+                list[second_index] = temp;
             }
-            return list;
         }
 
         /// <summary>
@@ -826,10 +859,7 @@ namespace Lib.helper
         /// <summary>
         /// 使用栈找文件
         /// </summary>
-        /// <param name="path"></param>
-        /// <param name="func"></param>
-        /// <param name="stack_count_func"></param>
-        public static void FindFiles(string path, VoidFunc<FileInfo> func, VoidFunc<int> stack_count_func)
+        public static void FindFiles(string path, VoidFunc<FileInfo> func, VoidFunc<int> stack_count_func = null)
         {
             var root = new DirectoryInfo(path);
             if (!root.Exists) { throw new Exception("目录不存在"); }
@@ -861,8 +891,6 @@ namespace Lib.helper
         /// <summary>
         /// 使用递归找文件目录
         /// </summary>
-        /// <param name="dir"></param>
-        /// <param name="func"></param>
         public static void FindFilesBad(DirectoryInfo dir, VoidFunc<FileInfo> func)
         {
             if (dir == null || !dir.Exists) { return; }
@@ -900,75 +928,6 @@ namespace Lib.helper
         {
             size = size ?? 10;
             return size < 1 ? 10 : size;
-        }
-
-        /// <summary>
-        /// 计算字符相似度
-        /// </summary>
-        /// <param name="str1"></param>
-        /// <param name="str2"></param>
-        /// <returns></returns>
-        private static int Levenshtein_Distance(string str1, string str2)
-        {
-            int[,] Matrix;
-            int n = str1.Length;
-            int m = str2.Length;
-
-            int temp = 0;
-            char ch1;
-            char ch2;
-            int i = 0;
-            int j = 0;
-            if (n == 0)
-            {
-                return m;
-            }
-            if (m == 0)
-            {
-                return n;
-            }
-            Matrix = new int[n + 1, m + 1];
-            for (i = 0; i <= n; i++)
-            {
-                //初始化第一列
-                Matrix[i, 0] = i;
-            }
-            for (j = 0; j <= m; j++)
-            {
-                //初始化第一行
-                Matrix[0, j] = j;
-            }
-            for (i = 1; i <= n; i++)
-            {
-                ch1 = str1[i - 1];
-                for (j = 1; j <= m; j++)
-                {
-                    ch2 = str2[j - 1];
-                    if (ch1.Equals(ch2))
-                    {
-                        temp = 0;
-                    }
-                    else
-                    {
-                        temp = 1;
-                    }
-                    Matrix[i, j] = new int[] { Matrix[i - 1, j] + 1, Matrix[i, j - 1] + 1, Matrix[i - 1, j - 1] + temp }.Min();
-                }
-            }
-            return Matrix[n, m];
-
-        }
-
-        /// <summary>
-        /// 计算字符串相似度
-        /// </summary>
-        /// <param name="str1"></param>
-        /// <param name="str2"></param>
-        /// <returns></returns>
-        public static decimal LevenshteinDistancePercent(string str1, string str2)
-        {
-            int val = Levenshtein_Distance(str1, str2);
-            return 1 - (decimal)val / new int[] { str1.Length, str2.Length }.Max();
         }
 
         /// <summary>
@@ -1024,18 +983,15 @@ namespace Lib.helper
         /// 询价单有效期为30分钟，17.30到第二天早上9点停止报价，如果下午17.20发布询价单，其实是第二天早上才过期
         /// 从开始时间当天开始，计算每天能消耗的时间，不断迭代消耗，直到时间被消耗完
         /// </summary>
-        /// <param name="createTime"></param>
-        /// <param name="DurationSeconds"></param>
-        /// <returns></returns>
-        public static DateTime GetExpireTime(DateTime createTime, double DurationSeconds)
+        public static DateTime GetExpireTime(DateTime createTime, double DurationSeconds, double day_start_hours = 9, double day_end_hours = 17)
         {
             //当天开始消耗时间的开始位置
             var time = createTime;
             var secondsLeft = DurationSeconds;
             while (true)
             {
-                var start = time.Date.AddHours(9);
-                var end = time.Date.AddHours(17 + 0.5);
+                var start = time.Date.AddHours(day_start_hours);
+                var end = time.Date.AddHours(day_end_hours);
                 //今天实际开始计时的开始时间
                 var jishikaishi = default(DateTime);
                 if (time < start)
@@ -1061,18 +1017,43 @@ namespace Lib.helper
                 //减去消耗时间
                 secondsLeft -= xiaohaoshijian;
                 //今天没能消耗所有时间，计算下一天
-                time = time.Date.AddDays(1).AddHours(9);
+                time = time.Date.AddDays(1).AddHours(day_start_hours);
             }
         }
 
         /// <summary>
         /// 实现python中的range
         /// </summary>
-        public static IEnumerable<int> Range(int a, int? b = null)
+        public static IEnumerable<int> Range(int a, int? b = null, int step = 1)
         {
-            var start = b != null ? a : 0;
-            var stop = b ?? a;
-            for (var i = start; i < stop; ++i)
+            foreach (var i in RangeDouble(a, b, step))
+            {
+                yield return (int)i;
+            }
+        }
+
+        /// <summary>
+        /// 实现python中的range
+        /// </summary>
+        public static IEnumerable<double> RangeDouble(double a, double? b = null, double step = 1)
+        {
+            if (step == 0) { throw new Exception($"{nameof(step)}不可以为0"); }
+
+            var start = default(double);
+            var end = default(double);
+
+            if (b == null)
+            {
+                start = 0;
+                end = a;
+            }
+            else
+            {
+                start = a;
+                end = b.Value;
+            }
+
+            for (var i = start; i < end; i = i + step)
             {
                 yield return i;
             }

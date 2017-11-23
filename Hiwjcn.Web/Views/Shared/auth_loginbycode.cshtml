@@ -1,0 +1,79 @@
+﻿@{
+    Layout = null;
+}
+
+<form id="fm">
+    <table class="table">
+        <tbody>
+            <tr>
+                <td class="center">
+                    <h1 style="color:darkblue;">
+                        <span class="fa fa-mobile-phone"></span>
+                    </h1>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <span class="fa fa-phone"></span>
+                        </span>
+                        <input type="text" class="form-control" name="phone" placeholder="mobile phone">
+                        <span class="input-group-btn">
+                            <button class="btn btn-info" id="send_sms" type="button">Send SMS</button>
+                        </span>
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="input-group">
+                        <span class="input-group-addon">
+                            <span class="fa fa-lock"></span>
+                        </span>
+                        <input type="text" class="form-control" name="code" placeholder="input one time code" />
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <button type="submit" class="btn btn-primary btn-block">登录</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</form>
+<script type="text/javascript">
+    $(function () {
+        $('#send_sms').click(function () {
+            var btn = $(this);
+            
+            var phone = $("input[name='phone']").val();
+            postJson('/Account/SendOneTimeCode', { phone: phone }, function (res) {
+                if (res.success) {
+                    btn.text('Sent!').attr('disabled', 'disabled');
+                    setTimeout(1000 * 3 * 10, function () {
+                        btn.text('Try again').removeAttr('disabled');
+                    });
+                }
+                else {
+                    alert(res.msg);
+                }
+            });
+            return false;
+        });
+        $('#fm').submit(function () {
+            var form = $(this);
+            var data = form.serializeArray();
+            postJson('/Account/LoginByOneTimeCode', data, function (res) {
+                if (res.success) {
+                    window.location.reload();
+                }
+                else {
+                    alert(res.msg);
+                }
+            });
+            return false;
+        });
+    });
+</script>

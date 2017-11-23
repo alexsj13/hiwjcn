@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Threading;
+using Lib.extension;
+using StackExchange.Redis;
 
 namespace WindowsFormApp
 {
@@ -116,6 +118,25 @@ namespace WindowsFormApp
         {
             var data = await xxAsync();
             MessageBox.Show(data.ToString());
+        }
+
+        private void button6_Click(object sender, EventArgs e)
+        {
+            var pool = default(ConnectionMultiplexer);
+            try
+            {
+                pool = ConnectionMultiplexer.Connect("netscaler.ad.tuhu.cn:6379");
+
+                MessageBox.Show("ok");
+            }
+            catch (Exception err)
+            {
+                MessageBox.Show(err.GetInnerExceptionAsJson());
+            }
+            finally
+            {
+                pool?.Dispose();
+            }
         }
     }
 }

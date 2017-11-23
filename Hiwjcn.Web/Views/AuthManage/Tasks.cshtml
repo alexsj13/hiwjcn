@@ -1,0 +1,75 @@
+﻿@using Lib.task;
+@{
+    this.SetLayout("AuthManageLayout");
+    this.SetTitle("定时任务");
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <span class="fa fa-info-circle"></span>
+            <span>定时任务会因为IIS回收应用程序池而关闭，请合理设置回收时间</span>
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-heading">
+        <span class="fa fa-tasks"></span>
+        <span>定时任务</span>
+    </div>
+    <div class="panel-body">
+        @{
+            var list = this.GetNotNullViewData<List<ScheduleJobModel>>("list");
+            if (ValidateHelper.IsPlumpList(list))
+            {
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <td>名称</td>
+                            <td>分组</td>
+                            <td>状态</td>
+                            <td>触发器</td>
+                            <td>创建</td>
+                            <td>上次执行</td>
+                            <td>下次执行</td>
+                            <td></td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in list)
+                        {
+                            <tr>
+                                <td>@(m.JobName)</td>
+                                <td>@(m.JobGroup)</td>
+                                <td>@(m.JobStatus)</td>
+                                <td>
+                                    <div>@(m.TriggerName)</div>
+                                    <div>分组：@(m.TriggerGroup)</div>
+                                </td>
+                                <td>@(m.StartTime.ToFriendlyDateTime())</td>
+                                <td>
+                                    @if (m.PreTriggerTime != null)
+                                    {
+                                        <span>@(m.PreTriggerTime.Value.GetSimpleFriendlyDateTime())</span>
+                                    }
+                                </td>
+                                <td>@(m.NextTriggerTime)</td>
+                                <td>
+                                    @if (m.IsRunning)
+                                    {
+                                        <span class="label label-success">执行中</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <div class="alert alert-info">没有定时任务</div>
+            }
+        }
+    </div>
+</div>

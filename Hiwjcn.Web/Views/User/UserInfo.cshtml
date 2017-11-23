@@ -2,8 +2,7 @@
 @{
     Layout = null;
 
-    var model = ViewData["user"] as UserModel;
-    if (model == null) { model = new UserModel(); }
+    var model = GetModel<UserModel>("user");
 }
 
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -36,7 +35,7 @@
                                     <td class="active"></td>
                                     <td>
                                         <a href="/user/updateusermask/" target="_self">
-                                            <img src="/user/usermask/@(model.UserID)/" alt="修改头像" class="circle_radius" style="width:100px;height:100px;" />
+                                            <img src="/user/usermask/@(model.UID)/" alt="修改头像" class="circle_radius" style="width:100px;height:100px;" />
                                         </a>
                                     </td>
                                 </tr>

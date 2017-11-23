@@ -1,4 +1,6 @@
 ﻿using Autofac;
+using Autofac.Builder;
+using Autofac.Integration.Mvc;
 using Lib.cache;
 using Lib.core;
 using Lib.helper;
@@ -6,6 +8,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using System.Web;
+using Lib.extension;
+using System.Data;
+using System.Data.Entity;
+using Lib.mq;
 
 namespace Lib.ioc
 {
@@ -52,6 +60,8 @@ namespace Lib.ioc
             context?.Dispose();
         }
 
+        public static RefAction<ContainerBuilder> OnContainerBuilding { get; set; }
+
         /// <summary>
         /// 获取ioc容器，第一次访问将创建容器
         /// </summary>
@@ -76,8 +86,13 @@ namespace Lib.ioc
                                 foreach (var reg in ExtraRegistrars)
                                 {
                                     reg.Register(ref builder);
+                                    reg.Clean();
                                 }
                             }
+
+                            //额外的切入点
+                            OnContainerBuilding?.Invoke(ref builder);
+
                             //创建容器
                             context = builder.Build();
                         }
@@ -125,6 +140,7 @@ namespace Lib.ioc
         /// <typeparam name="T"></typeparam>
         /// <param name="name"></param>
         /// <returns></returns>
+        [Obsolete("不使用生命周期直接使用autofac创建实例，实例会被autofac跟踪，不会被释放")]
         public static T GetObject<T>(string name = null)
         {
             if (ValidateHelper.IsPlumpString(name))
@@ -142,9 +158,111 @@ namespace Lib.ioc
         /// <typeparam name="T"></typeparam>
         /// <param name="name"></param>
         /// <returns></returns>
+        [Obsolete("不使用生命周期直接使用autofac创建实例，实例会被autofac跟踪，不会被释放")]
         public static T[] GetAllObject<T>(string name = null)
         {
             return GetObject<IEnumerable<T>>(name).ToArray();
+        }
+
+        /// <summary>
+        /// 创建一个作用域
+        /// </summary>
+        /// <returns></returns>
+        public static ILifetimeScope Scope() => Container.BeginLifetimeScope();
+
+        /// <summary>
+        /// 生命周期
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="func"></param>
+        /// <returns></returns>
+        public static T Scope<T>(Func<ILifetimeScope, T> func)
+        {
+            var catch_exception_and_create_scope = true;
+            try
+            {
+                //尝试使用httpscope
+                var context = HttpContext.Current;
+                if (context != null)
+                {
+                    var s = context.GetAutofacScope();
+                    //已经成功创建scope，没有必要继续尝试创建
+                    catch_exception_and_create_scope = false;
+                    return func.Invoke(s);
+                }
+            }
+            catch when (catch_exception_and_create_scope)
+            {
+                //do nothing
+            }
+
+            //httpcontext中没有scope，创建一次性scope
+            using (var scope = Scope())
+            {
+                return func.Invoke(scope);
+            }
+        }
+
+        /// <summary>
+        /// 生命周期
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="func"></param>
+        /// <returns></returns>
+        public static async Task<T> ScopeAsync<T>(Func<ILifetimeScope, Task<T>> func)
+        {
+            var catch_exception_and_create_scope = true;
+            try
+            {
+                //尝试使用httpscope
+                var context = HttpContext.Current;
+                if (context != null)
+                {
+                    var s = context.GetAutofacScope();
+                    //已经成功创建scope，没有必要继续尝试创建
+                    catch_exception_and_create_scope = false;
+                    return await func.Invoke(s);
+                }
+            }
+            catch when (catch_exception_and_create_scope)
+            {
+                //do nothing
+            }
+
+            //httpcontext中没有scope，创建一次性scope
+            using (var scope = Scope())
+            {
+                return await func.Invoke(scope);
+            }
+        }
+    }
+
+    public class RequestScopeModule : IHttpModule
+    {
+        public void Dispose()
+        {
+            $"{nameof(RequestScopeModule)}被销毁".AddBusinessInfoLog();
+        }
+
+        public void Init(HttpApplication context)
+        {
+            context.BeginRequest += (sender, e) =>
+            {
+                HttpContext.Current.SetAutofacScope(AppContext.Scope());
+            };
+
+            context.EndRequest += (sender, e) =>
+            {
+                try
+                {
+                    var scope = HttpContext.Current.GetAutofacScope();
+                    scope.Dispose();
+                }
+                catch (Exception err)
+                {
+                    err.AddErrorLog("销毁请求scope失败");
+                }
+            };
         }
     }
 

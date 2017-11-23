@@ -1,0 +1,265 @@
+﻿@using Hiwjcn.Core.Domain.Auth;
+@using Hiwjcn.Core.Model.Sys;
+@{
+    this.SetLayout("AuthManageLayout");
+    this.SetTitle("数据统计");
+}
+@helper RenderTime(ReqLogGroupModel model)
+{
+
+model.ReqTime = model.ReqTime ?? 0;
+var s = model.ReqTime.Value.ToString("0.00");
+if (model.ReqTime > 100)
+{
+        <span style="color:red;">@(s)</span>
+}
+else
+{
+        <span style="color:green;">@(s)</span>
+}
+
+}
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <span class="fa fa-info-circle"></span>
+            <span>数据来自最近10天，数据每10分钟更新</span>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+
+    <div class="col-md-12 today_req_box">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <span class="fa fa-bar-chart"></span>
+                <span>今日流量</span>
+            </div>
+            <div class="panel-body">
+                <div id="today_req" style="height:300px;width:100%;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-12">
+        <h4>接口响应统计</h4>
+    </div>
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">按照时间</div>
+            <div class="panel-body">
+                @{
+                    var reqlog_groupbytime = this.GetNotNullViewData<List<ReqLogGroupModel>>("reqlog_groupbytime");
+                    if (ValidateHelper.IsPlumpList(reqlog_groupbytime))
+                    {
+                        reqlog_groupbytime = reqlog_groupbytime.OrderByDescending(x => x.Time).ToList();
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <td>日期</td>
+                                    <td>响应（ms）</td>
+                                    <td>请求次数</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in reqlog_groupbytime)
+                                {
+                                    <tr>
+                                        <td>@(m.Time.ToDateString())</td>
+                                        <td>@(RenderTime(m))</td>
+                                        <td>@(m.ReqCount)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">没有数据</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">按照接口</div>
+            <div class="panel-body">
+                @{
+                    var reqlog_groupbyaction = this.GetNotNullViewData<List<ReqLogGroupModel>>("reqlog_groupbyaction");
+                    if (ValidateHelper.IsPlumpList(reqlog_groupbyaction))
+                    {
+                        reqlog_groupbyaction = reqlog_groupbyaction.OrderByDescending(x => x.ReqTime).ToList();
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <td>接口</td>
+                                    <td>响应（ms）</td>
+                                    <td>请求次数</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in reqlog_groupbyaction)
+                                {
+                                    <tr>
+                                        <td>@(m.Url)</td>
+                                        <td>@(RenderTime(m))</td>
+                                        <td>@(m.ReqCount)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">没有数据</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <h4>缓存命中统计</h4>
+    </div>
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">按照时间</div>
+            <div class="panel-body">
+                @{
+                    var cachehit_groupbytime = this.GetNotNullViewData<List<CacheHitGroupModel>>("cachehit_groupbytime");
+                    if (ValidateHelper.IsPlumpList(cachehit_groupbytime))
+                    {
+                        cachehit_groupbytime = cachehit_groupbytime.OrderByDescending(x => x.Time).ToList();
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <td>时间</td>
+                                    <td>命中率</td>
+                                    <td>读取次数</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in cachehit_groupbytime)
+                                {
+                                    <tr>
+                                        <td>@(m.Time.ToDateString())</td>
+                                        <td>@(m.Per)</td>
+                                        <td>@(m.AllCount)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">没有数据</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel panel-default">
+            <div class="panel-heading">按照缓存Key</div>
+            <div class="panel-body">
+                @{
+                    var cachehit_groupbykey = this.GetNotNullViewData<List<CacheHitGroupModel>>("cachehit_groupbykey");
+                    if (ValidateHelper.IsPlumpList(cachehit_groupbykey))
+                    {
+                        cachehit_groupbykey = cachehit_groupbykey.OrderByDescending(x => x.AllCount).ToList();
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <td>缓存Key</td>
+                                    <td>命中率</td>
+                                    <td>读取次数</td>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var m in cachehit_groupbykey)
+                                {
+                                    <tr>
+                                        <td style="overflow:hidden;word-break:break-all;width:150px;">@(m.CacheKey)</td>
+                                        <td>@(m.Per)</td>
+                                        <td>@(m.AllCount)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">没有数据</div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    var reqlog_groupbyhour = this.GetNotNullViewData<List<ReqLogGroupModel>>("reqlog_groupbyhour");
+    if (ValidateHelper.IsPlumpList(reqlog_groupbyhour))
+    {
+        <script src="~/ui/echarts/echarts.min.js"></script>
+        <script type="text/javascript">
+    var option = {
+        grid: {
+            left: '3%',
+            right: '4%',
+            bottom: '3%',
+            containLabel: true
+        },
+        xAxis: [
+            {
+                type: 'category',
+                boundaryGap: false,
+                data: [@(Html.Raw(reqlog_groupbyhour.Select(x=>x.Hour).ToJson()))][0]
+            }
+        ],
+        yAxis: [
+            {
+                type: 'value'
+            }
+        ],
+        series: [
+            {
+                name: '请求数量',
+                type: 'line',
+                stack: '请求数量',
+                label: {
+                    normal: {
+                        show: true,
+                        position: 'top'
+                    }
+                },
+                itemStyle: {
+                    normal: {
+                        color: '#1a88d2'
+                    }
+                },
+                areaStyle: {
+                    normal: {
+                        color: '#3498db'
+                    }
+                },
+                data: [@(Html.Raw(reqlog_groupbyhour.Select(x=>x.ReqCount).ToJson()))][0]
+            }
+        ]
+    };
+    $(function () {
+
+        $('.today_req_box').show();
+        // 基于准备好的dom，初始化echarts实例
+        var myChart = echarts.init(document.getElementById('today_req'));
+        // 使用刚指定的配置项和数据显示图表。
+        myChart.setOption(option);
+    });
+        </script>
+    }
+}

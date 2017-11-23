@@ -1,0 +1,121 @@
+﻿@using Hiwjcn.Core.Domain.Auth;
+@{
+    this.SetLayout(null);
+
+    var scopes = Com.NewIfNull<List<AuthScope>>(ViewData["scopes"]);
+    var client = Com.NewIfNull<AuthClient>(ViewData["client"]);
+    //client.ClientName = "汽配龙";
+    //client.LogoUrl = "http://images.qipeilong.cn/ico/logo.png?t=111";
+}
+
+<div class="panel panel-default" style="margin-top:20px;">
+    <div class="panel-heading">
+        <h4>授权访问</h4>
+    </div>
+    <div class="panel-body" style="background-color:#1f91bd;color:white;">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="box_con">
+                    <a href="@(client.ClientUrl)" target="_blank" class="thumbnail">
+                        <img src="@(client.LogoUrl)" alt="">
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <p><h4><span class="label label-primary">@(client.ClientName)</span></h4></p>
+                <p>@(client.Description)</p>
+                <p>授予以下权限</p>
+            </div>
+        </div>
+    </div>
+    @if (ValidateHelper.IsPlumpList(scopes))
+    {
+        <div class="list-group">
+            @foreach (var s in scopes)
+                {
+                <a href="javascript:;" class="list-group-item" target="_blank">
+                    <h4 class="list-group-item-heading">
+                        <span>@(s.DisplayName)</span>
+                        @if (s.Important > 0)
+                        {
+                            <span class="label label-danger">重要</span>
+                        }
+                    </h4>
+                    <p class="list-group-item-text">@(s.Description)</p>
+                </a>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">没有指定scope</div>
+    }
+    <div class="panel-footer">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="pull-right">
+                    <button class="btn btn-success" id="ok_btn">
+                        <span class="fa fa-check"></span>
+                        <span>授权</span>
+                    </button>
+                </div>
+                <div class="pull-left">
+                    <button class="btn btn-link" id="deny_btn">
+                        <span class="fa fa-remove"></span>
+                        <span>取消</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@{
+    var return_type = ConvertHelper.GetString(ViewData["return_type"]);
+}
+
+@if (return_type == "js")
+{
+    <script type="text/javascript">
+        window.cb = function (code) {
+            if (window.set_code) {
+                window.set_code(code);
+            }
+            else {
+                alert('没有set_code回调');
+            }
+        };
+    </script>
+}
+else
+{
+    <script type="text/javascript">
+                                        var url = "@(ViewData["redirect_uri"])";
+                                        window.cb = function (code) {
+                                            window.location.href = (url + "?code=" + code);
+                                        };
+    </script>
+}
+
+<script type="text/javascript">
+                                $(function () {
+                                    $('#deny_btn').click(function () {
+                                        window.close();
+                                        return false;
+                                    });
+                                    $('#ok_btn').click(function () {
+                                        postJson('/connect/CreateAuthorizeCode', {
+                                            client_id: '@(client.UID)',
+                                            scope: '@(Html.Raw(scopes.Select(x => x.Name).ToJson()))'
+                                        }, function (res) {
+                                            if (res.success) {
+                                                window.cb(res.data);
+                                            }
+                                            else {
+                                                alert(res.msg);
+                                            }
+                                        });
+                                        return false;
+                                    });
+                                });
+</script>

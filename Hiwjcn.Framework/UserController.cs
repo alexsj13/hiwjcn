@@ -8,6 +8,9 @@ using Model.Sys;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web.Mvc;
+using System;
+using Hiwjcn.Core;
+using Lib.cache;
 
 namespace WebCore.MvcLib.Controller
 {
@@ -23,7 +26,7 @@ namespace WebCore.MvcLib.Controller
         {
             //自动登录还有问题
             //AutoLoginSSO();
-            AutoLogin();
+            //AutoLogin();
 
             //加载数据库option
             LoadSettings();
@@ -37,25 +40,29 @@ namespace WebCore.MvcLib.Controller
         [NonAction]
         private void AutoLogin()
         {
-            var logincontext = AppContext.GetObject<LoginStatus>();
-
-            var loginuser = logincontext.GetLoginUser();
-            if (loginuser != null) { return; }
-
-            var email = logincontext.GetCookieUID();
-            var token = logincontext.GetCookieToken();
-            if (ValidateHelper.IsAllPlumpString(email, token))
+            AppContext.Scope(x =>
             {
-                var bll = AppContext.GetObject<IUserService>();
-                var model = bll.LoginByToken(email, token);
-                //如果通过token登陆成功
-                if (model != null && model.UserToken != null)
+                var logincontext = x.Resolve_<LoginStatus>();
+
+                var loginuser = logincontext.GetLoginUser();
+                if (loginuser != null) { return true; }
+
+                var email = logincontext.GetCookieUID();
+                var token = logincontext.GetCookieToken();
+                if (ValidateHelper.IsAllPlumpString(email, token))
                 {
-                    logincontext.SetUserLogin(loginuser: new LoginUserInfo() { });
-                    return;
+                    var bll = x.Resolve_<IUserService>();
+                    var model = bll.LoginByToken(email, token);
+                    //如果通过token登陆成功
+                    if (model != null && model.UserToken != null)
+                    {
+                        logincontext.SetUserLogin(loginuser: new LoginUserInfo() { });
+                        return true;
+                    }
                 }
-            }
-            logincontext.SetUserLogout();
+                logincontext.SetUserLogout();
+                return true;
+            });
         }
 
         /// <summary>
@@ -64,25 +71,25 @@ namespace WebCore.MvcLib.Controller
         [NonAction]
         private void LoadSettings()
         {
-            //options
-            var setting = AppContext.GetObject<ISettingService>();
-            setting.UseCache = true;
-            this.Settings = setting.GetAllOptions();
-            if (this.Settings == null)
+            AppContext.Scope(x =>
             {
-                this.Settings = new List<OptionModel>();
-            }
-            if (this.Settings.Count <= 0) { return; }
-            var keys = new string[]
-            {
-                "web_name", "web_description","web_keywords",
-                "web_url",
-                "web_email","web_phone","web_address"
-            };
-            foreach (var key in keys)
-            {
-                ViewData[key] = this.GetOption(key);
-            }
+                //options
+                var setting = x.Resolve_<ISettingService>();
+                var cache = x.Resolve_<ICacheProvider>();
+
+                this.Settings = cache.GetOrSet(
+                    CacheKeyManager.SysOptionListKey(),
+                    () => setting.GetAllOptions(),
+                    TimeSpan.FromMinutes(3));
+
+                this.Settings = ConvertHelper.NotNullList(this.Settings);
+
+                foreach (var set in this.Settings)
+                {
+                    ViewData[set.Key] = set.Value;
+                }
+                return true;
+            });
         }
 
         /// <summary>

@@ -8,6 +8,7 @@ using Lib.helper;
 using Lib.extension;
 using Nest;
 using System.Configuration;
+using Lib.data.elasticsearch;
 
 namespace Lib.log
 {

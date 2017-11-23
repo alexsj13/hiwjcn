@@ -1,6 +1,5 @@
 ﻿@using Lib.core;
 @using Lib.helper;
-@using Bll.Account;
 @using Model.Category;
 @{
     Layout = null;
@@ -31,7 +30,7 @@
             <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 
                 <ul class="nav navbar-nav navbar-right hide_when_sm">
-                    @if (AccountHelper.IsUserLogin(context))
+                    @if (this.X.User != null)
                     {
                         <li>
                             <a class="hover" href="/user/usercenter/" rel="nofollow" target="_self">
@@ -75,7 +74,7 @@
                         @foreach (var model in list.Where(x => x.CategoryLevel == 0))
                         {
                             droplist = list.Where(
-                                x => x.CategoryParent == model.CategoryID
+                                x => x.CategoryParent == model.UID
                                 && x.CategoryLevel == model.CategoryLevel + 1).ToList();
 
                             <li class="@(ValidateHelper.IsPlumpList(droplist) ? "dropdown" : "no_dropdown")">

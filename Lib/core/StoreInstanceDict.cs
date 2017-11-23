@@ -24,13 +24,6 @@ namespace Lib.core
         /// <summary>
         /// 维护多个实例
         /// </summary>
-        /// <typeparam name="Instance"></typeparam>
-        /// <param name="dict"></param>
-        /// <param name="key"></param>
-        /// <param name="func"></param>
-        /// <param name="CheckInstance"></param>
-        /// <param name="_locker">一定要是引用类型</param>
-        /// <returns></returns>
         public static Instance StoreInstance<Instance>(this StoreInstanceDict<Instance> dict,
             string key, Func<Instance> func,
             Func<Instance, bool> CheckInstance = null, Action<Instance> releaseInstance = null)
@@ -130,10 +123,11 @@ namespace Lib.core
         /// </summary>
         public virtual void Dispose()
         {
-            foreach (var kv in db)
+            foreach (var kv in this.db)
             {
                 DisposeClient(kv.Value);
             }
+            this.db.Clear();
         }
 
         #region 等待实现

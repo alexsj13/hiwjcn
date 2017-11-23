@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Lib.mvc;
 
 namespace Lib.extension
 {
@@ -35,6 +36,34 @@ namespace Lib.extension
                 dict[kv.Key] = kv.Value;
             }
             return dict;
+        }
+
+        /// <summary>
+        /// 计算签名，只是返回，不自动加入字典
+        /// </summary>
+        public static (string sign, string sign_data) GetSign(this Dictionary<string, string> param, string salt = null, string sign_req_key = "sign")
+        {
+            var sorted = SignHelper.FilterAndSort(param, sign_req_key, new MyStringComparer());
+            var sign = SignHelper.CreateSign(sorted, salt);
+            return (sign.sign, sign.sign_data);
+        }
+
+        /// <summary>
+        /// 获取值
+        /// </summary>
+        /// <typeparam name="K"></typeparam>
+        /// <typeparam name="V"></typeparam>
+        /// <param name="dict"></param>
+        /// <param name="key"></param>
+        /// <param name="deft"></param>
+        /// <returns></returns>
+        public static V GetValueOrDefault<K, V>(this Dictionary<K, V> dict, K key, V deft = default(V))
+        {
+            if (dict.ContainsKey(key))
+            {
+                return dict[key];
+            }
+            return deft;
         }
 
         /// <summary>

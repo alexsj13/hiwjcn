@@ -24,14 +24,6 @@ namespace WebLogic.Bll.User
             this._RolePermissionDal = new RolePermissionDal();
         }
 
-        public override string CheckModel(RolePermissionModel model)
-        {
-            if (model == null) { return "角色权限关联对象为空"; }
-            if (model.RoleID <= 0) { return "角色ID为空"; }
-            if (!ValidateHelper.IsInt(model.PermissionID)) { return "权限ID为空"; }
-            return string.Empty;
-        }
-
         /// <summary>
         /// 添加角色权限关联
         /// </summary>
@@ -50,15 +42,15 @@ namespace WebLogic.Bll.User
         /// <param name="role_id"></param>
         /// <param name="permission_id"></param>
         /// <returns></returns>
-        public string DeleteRolePermission(int role_id, string permission_id)
+        public string DeleteRolePermission(string role_id, string permission_id)
         {
-            if (role_id <= 0 || !ValidateHelper.IsInt(permission_id))
+            if (!ValidateHelper.IsInt(permission_id))
             {
                 return "参数错误";
             }
             var list = _RolePermissionDal.QueryList(
                 x => x.RoleID == role_id && x.PermissionID == permission_id,
-                x => x.RolePermissionID);
+                x => x.CreateTime);
             if (!ValidateHelper.IsPlumpList(list))
             {
                 return "要删除的数据不存在";

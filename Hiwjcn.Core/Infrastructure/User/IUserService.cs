@@ -1,6 +1,7 @@
 ﻿using Lib.core;
 using Lib.helper;
 using Lib.infrastructure;
+using Lib.mvc.user;
 using Model.User;
 using System;
 using System.Collections.Generic;
@@ -13,8 +14,15 @@ namespace Hiwjcn.Core.Infrastructure.User
 {
     public interface IUserService : IServiceBase<UserModel>
     {
+        /// <summary>
+        /// 搜索
+        /// </summary>
+        /// <param name="keywords"></param>
+        /// <param name="page"></param>
+        /// <param name="pageSize"></param>
+        /// <returns></returns>
         PagerData<UserModel> GetPagerList(
-            string name = null, string sex = null, string email = null, string keywords = null,
+            string name = null, int? sex = null, string email = null, string keywords = null,
             bool LoadRoleAndPrivilege = false,
             int page = 1, int pageSize = 20);
 
@@ -23,35 +31,21 @@ namespace Hiwjcn.Core.Infrastructure.User
         /// </summary>
         /// <param name="userID"></param>
         /// <returns></returns>
-        byte[] GetUserImage(int userID);
+        byte[] GetUserImage(string userID);
 
         /// <summary>
         /// 通过id获取user
         /// </summary>
         /// <param name="userID"></param>
         /// <returns></returns>
-        UserModel GetByID(int userID);
-
-        /// <summary>
-        /// 通过id获取多个user对象
-        /// </summary>
-        /// <param name="ids"></param>
-        /// <returns></returns>
-        List<UserModel> GetUserByIDS(params int[] ids);
-
+        UserModel GetByID(string userID);
+        
         /// <summary>
         /// 用户数按照性别分组统计
         /// </summary>
         /// <returns></returns>
         List<UserCountGroupBySex> GetCountGroupBySex();
-
-        /// <summary>
-        /// 删除用户
-        /// </summary>
-        /// <param name="userID"></param>
-        /// <returns></returns>
-        string DeleteUser(int userID);
-
+        
         /// <summary>
         /// 更新用户头像
         /// </summary>
@@ -59,7 +53,7 @@ namespace Hiwjcn.Core.Infrastructure.User
         /// <param name="file"></param>
         /// <param name="MaxSize"></param>
         /// <returns></returns>
-        string UpdateUserMask(int userID, HttpPostedFile file, string save_path);
+        string UpdateUserMask(string userID, HttpPostedFile file, string save_path);
 
         /// <summary>
         /// 更新用户信息
@@ -78,8 +72,8 @@ namespace Hiwjcn.Core.Infrastructure.User
         /// </summary>
         /// <param name="context"></param>
         /// <returns></returns>
-        string UpdateUserPass(int userID, string old_pass, string new_pass, string re_new_pass);
-
+        string UpdateUserPass(string userID, string old_pass, string new_pass, string re_new_pass);
+        
         /// <summary>
         /// 生成token
         /// </summary>
@@ -112,12 +106,19 @@ namespace Hiwjcn.Core.Infrastructure.User
         /// <param name="web_name"></param>
         /// <returns></returns>
         string Register(UserModel model, string web_name = null);
-
+        
         /// <summary>
         /// 重设用户密码为随机密码，并将新密码发送到用户邮箱
         /// </summary>
         /// <param name="email"></param>
         /// <returns></returns>
         string ResetUserPassWord(string email);
+
+        /// <summary>
+        /// 获取用户权限
+        /// </summary>
+        /// <param name="loginuser"></param>
+        /// <returns></returns>
+        List<string> FetchPermission(LoginUserInfo loginuser);
     }
 }

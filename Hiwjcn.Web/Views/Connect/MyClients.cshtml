@@ -1,0 +1,80 @@
+﻿@using Hiwjcn.Core.Domain.Auth;
+@{
+    this.SetLayout("UserLayout");
+    this.SetTitle("已授权");
+}
+
+<div class="panel panel-default">
+    <div class="panel-heading">已授权应用</div>
+    <div class="panel-body">
+        @{
+            var clients = Com.NewIfNull<List<AuthClient>>(ViewData["list"]);
+            if (ValidateHelper.IsPlumpList(clients))
+            {
+                <table class="table table-hover">
+                    <thead style="display:none;">
+                        <tr>
+                            <td></td>
+                            <td></td>
+                            <td></td>
+                            <td width="10%"></td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in clients)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="@(m.ClientUrl)" target="_blank" class="thumbnail" style="margin:0;">
+                                        <img src="@(m.LogoUrl)" alt="">
+                                    </a>
+                                </td>
+                                <td>
+                                    <span>@(m.ClientName)</span>
+                                    @if (m.IsOfficial > 0)
+                                    {
+                                        <span class="label label-danger">官方</span>
+                                    }
+                                </td>
+                                <td>@(m.Description)</td>
+                                <td>
+                                    <button class="btn btn-link del" data-id="@(m.UID)">取消授权</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="4" class="right">
+                                @(Html.Raw(ViewData["pager"]))
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <script type="text/javascript">
+                    $(function () {
+                        $('.del').click(function () {
+                            if (!confirm('确定取消授权？')) {
+                                return;
+                            }
+                            var btn = $(this);
+                            var id = btn.data('id');
+                            postJson('/user/DelClient', { id: id }, function (res) {
+                                if (res.Success) {
+                                    window.location.reload();
+                                }
+                                else {
+                                    alert(res.ErrorMsg);
+                                }
+                            });
+                        });
+                    });
+                </script>
+            }
+            else
+            {
+                <div class="alert alert-info">没有授权应用</div>
+            }
+        }
+    </div>
+</div>

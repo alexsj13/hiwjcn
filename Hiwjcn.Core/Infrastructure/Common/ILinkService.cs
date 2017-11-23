@@ -12,13 +12,7 @@ namespace Hiwjcn.Core.Infrastructure.Common
 {
     public interface ILinkService : IServiceBase<LinkModel>
     {
-
-        /// <summary>
-        /// 根据ID获取连接
-        /// </summary>
-        /// <param name="id"></param>
-        /// <returns></returns>
-        LinkModel GetLinkByID(int id);
+        LinkModel GetLinkByID(string id);
 
         /// <summary>
         /// 读取链接
@@ -33,7 +27,7 @@ namespace Hiwjcn.Core.Infrastructure.Common
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        string DeleteLink(int id);
+        string DeleteLink(string id);
 
         /// <summary>
         /// 添加链接

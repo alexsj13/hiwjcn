@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Lib.extension;
+using Lib.helper;
+using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
@@ -11,13 +13,8 @@ namespace Lib.data
     /// 仓储接口
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface IRepository<T> where T : IDBTable
+    public interface IRepository<T> : IDisposable where T : IDBTable
     {
-        /// <summary>
-        /// 用来获取EF对象
-        /// </summary>
-        EFManager _EFManager { get; }
-
         #region 添加
         /// <summary>
         /// 添加多个model
@@ -46,6 +43,20 @@ namespace Lib.data
         /// <param name="models"></param>
         /// <returns></returns>
         Task<int> DeleteAsync(params T[] models);
+
+        /// <summary>
+        /// 按照条件删除
+        /// </summary>
+        /// <param name="where"></param>
+        /// <returns></returns>
+        int DeleteWhere(Expression<Func<T, bool>> where);
+
+        /// <summary>
+        /// 按照条件删除
+        /// </summary>
+        /// <param name="where"></param>
+        /// <returns></returns>
+        Task<int> DeleteWhereAsync(Expression<Func<T, bool>> where);
         #endregion
 
         #region 修改
@@ -129,6 +140,16 @@ namespace Lib.data
         Task<List<T>> GetListAsync(Expression<Func<T, bool>> where, int? count = null);
 
         /// <summary>
+        /// 获取列表，当数量达到最大limit就抛出异常
+        /// </summary>
+        List<T> GetListEnsureMaxCount(Expression<Func<T, bool>> where, int count, string error_msg);
+
+        /// <summary>
+        /// 获取列表，当数量达到最大limit就抛出异常
+        /// </summary>
+        Task<List<T>> GetListEnsureMaxCountAsync(Expression<Func<T, bool>> where, int count, string error_msg);
+
+        /// <summary>
         /// 查询第一个
         /// </summary>
         /// <param name="where"></param>
@@ -166,36 +187,6 @@ namespace Lib.data
         /// <param name="where"></param>
         /// <returns></returns>
         Task<bool> ExistAsync(Expression<Func<T, bool>> where);
-        #endregion
-
-        #region 获取查询上下文
-        /// <summary>
-        /// 获取IQueryable对象，用于linq查询
-        /// </summary>
-        /// <param name="callback"></param>
-        /// <param name="track"></param>
-        void PrepareIQueryable(Func<IQueryable<T>, bool> callback, bool track = false);
-
-        /// <summary>
-        /// 获取IQueryable对象，用于linq查询
-        /// </summary>
-        /// <param name="callback"></param>
-        /// <param name="track"></param>
-        /// <returns></returns>
-        Task PrepareIQueryableAsync(Func<IQueryable<T>, Task<bool>> callback, bool track = false);
-
-        /// <summary>
-        /// 获取session
-        /// </summary>
-        /// <param name="callback"></param>
-        void PrepareSession(Func<DbContext, bool> callback);
-
-        /// <summary>
-        /// 获取session
-        /// </summary>
-        /// <param name="callback"></param>
-        /// <returns></returns>
-        Task PrepareSessionAsync(Func<DbContext, Task<bool>> callback);
         #endregion
     }
 }

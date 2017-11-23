@@ -6,7 +6,7 @@
 @{
     Layout = null;
 
-    var list = ViewData["list"] as List<MessageModel>;
+    var list = GetModel<List<MessageModel>>("list");
 }
 
 <?xml version="1.0" encoding="UTF-8" ?>
@@ -42,7 +42,7 @@
                                         <td>@(model.Title)</td>
                                         <td>@(DateTimeHelper.GetFriendlyDateTime(model.UpdateTime))</td>
                                         <td>
-                                            <button data-id="@(model.MsgID)" class="btn btn-x btn-sm">删除</button>
+                                            <button data-id="@(model.UID)" class="btn btn-x btn-sm">删除</button>
                                         </td>
                                     </tr>
                                 }

@@ -25,35 +25,6 @@ namespace WebLogic.Bll.Page
             this._PageRepository = page;
         }
 
-        public override string CheckModel(SectionModel model)
-        {
-            if (model == null)
-            {
-                return "对象为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.SectionName))
-            {
-                return "内容块名称不能为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.SectionTitle))
-            {
-                return "标题不能为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.SectionDescription))
-            {
-                return "描述不能为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.SectionContent))
-            {
-                return "内容不能为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.SectionType))
-            {
-                return "内容类型不能为空";
-            }
-            return string.Empty;
-        }
-
         /// <summary>
         /// 获取内容块
         /// </summary>
@@ -76,34 +47,28 @@ namespace WebLogic.Bll.Page
         /// <returns></returns>
         public List<SectionModel> GetSections(string[] names = null, string section_type = null, string rel_group = null, int maxcount = 100)
         {
-            if (names == null) { names = new string[] { }; }
-            string key = GetCacheKey($"{nameof(PageService)}.{nameof(GetSections)}",
-                string.Join("|", names), section_type, rel_group, maxcount.ToString());
-            return Cache(key, () =>
+            List<SectionModel> data = null;
+
+            _SectionDal.PrepareIQueryable((query) =>
             {
-                List<SectionModel> data = null;
-
-                _SectionDal.PrepareIQueryable((query) =>
+                if (ValidateHelper.IsPlumpList(names))
                 {
-                    if (ValidateHelper.IsPlumpList(names))
-                    {
-                        query = query.Where(x => names.Contains(x.SectionName));
-                    }
-                    if (ValidateHelper.IsPlumpString(section_type))
-                    {
-                        query = query.Where(x => x.SectionType == section_type);
-                    }
-                    if (ValidateHelper.IsPlumpString(rel_group))
-                    {
-                        query = query.Where(x => x.RelGroup == rel_group);
-                    }
-                    query = query.OrderByDescending(x => x.UpdateTime).Skip(0).Take(maxcount);
-                    data = query.ToList();
-                    return true;
-                });
-
-                return data;
+                    query = query.Where(x => names.Contains(x.SectionName));
+                }
+                if (ValidateHelper.IsPlumpString(section_type))
+                {
+                    query = query.Where(x => x.SectionType == section_type);
+                }
+                if (ValidateHelper.IsPlumpString(rel_group))
+                {
+                    query = query.Where(x => x.RelGroup == rel_group);
+                }
+                query = query.OrderByDescending(x => x.UpdateTime).Skip(0).Take(maxcount);
+                data = query.ToList();
+                return true;
             });
+
+            return data;
         }
 
         /// <summary>
@@ -119,7 +84,11 @@ namespace WebLogic.Bll.Page
             {
                 return "标识存在重复值";
             }
-            return _SectionDal.Add(model) > 0 ? SUCCESS : "添加失败";
+            if (_SectionDal.Add(model) > 0)
+            {
+                return this.SUCCESS;
+            }
+            throw new Exception("添加失败");
         }
 
         /// <summary>
@@ -129,7 +98,7 @@ namespace WebLogic.Bll.Page
         /// <returns></returns>
         public string UpdateSection(SectionModel updatemodel)
         {
-            var model = _SectionDal.GetFirst(x => x.SectionID == updatemodel.SectionID);
+            var model = _SectionDal.GetFirst(x => x.UID == updatemodel.UID);
             if (model == null) { return "内容不存在"; }
 
             model.SectionName = updatemodel.SectionName;
@@ -145,7 +114,7 @@ namespace WebLogic.Bll.Page
 
             if (_SectionDal.Exist(x =>
                 x.SectionName == model.SectionName &&
-                x.SectionID != model.SectionID))
+                x.UID != model.UID))
             {
                 return "标识存在重复值";
             }
@@ -180,28 +149,23 @@ namespace WebLogic.Bll.Page
             string q = null, string sectionType = null,
             int page = 1, int pagesize = 10)
         {
-            string key = GetCacheKey($"{nameof(PageService)}.{nameof(GetSectionList)}", q, sectionType, page.ToString(), pagesize.ToString());
-
-            return Cache(key, () =>
+            var data = new PagerData<SectionModel>();
+            //列表
+            _SectionDal.PrepareIQueryable((query) =>
             {
-                var data = new PagerData<SectionModel>();
-                //列表
-                _SectionDal.PrepareIQueryable((query) =>
+                if (ValidateHelper.IsPlumpString(q))
                 {
-                    if (ValidateHelper.IsPlumpString(q))
-                    {
-                        query = query.Where(x => x.SectionTitle.Contains(q) || x.SectionDescription.Contains(q));
-                    }
-                    if (ValidateHelper.IsPlumpString(sectionType))
-                    {
-                        query = query.Where(x => x.SectionType == sectionType);
-                    }
-                    data.ItemCount = query.Count();
-                    data.DataList = query.OrderByDescending(x => x.UpdateTime).QueryPage(page, pagesize).ToList();
-                    return true;
-                });
-                return data;
+                    query = query.Where(x => x.SectionTitle.Contains(q) || x.SectionDescription.Contains(q));
+                }
+                if (ValidateHelper.IsPlumpString(sectionType))
+                {
+                    query = query.Where(x => x.SectionType == sectionType);
+                }
+                data.ItemCount = query.Count();
+                data.DataList = query.OrderByDescending(x => x.UpdateTime).QueryPage(page, pagesize).ToList();
+                return true;
             });
+            return data;
         }
 
     }

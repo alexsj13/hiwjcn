@@ -12,6 +12,11 @@ namespace Hiwjcn.Core.Infrastructure.Common
 {
     public interface IUpFileService : IServiceBase<UpFileModel>
     {
+        /// <summary>
+        /// 添加文件记录
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
         string AddFile(UpFileModel model);
 
         /// <summary>
@@ -22,7 +27,7 @@ namespace Hiwjcn.Core.Infrastructure.Common
         /// <param name="size"></param>
         /// <param name="filelist"></param>
         /// <param name="filecount"></param>
-        void FindFiles(int uid, int start, int size, ref string[] filelist, ref int filecount);
+        void FindFiles(string uid, int start, int size, ref string[] filelist, ref int filecount);
 
         /// <summary>
         /// 删除文件
@@ -30,17 +35,16 @@ namespace Hiwjcn.Core.Infrastructure.Common
         /// <param name="fid"></param>
         /// <param name="uid"></param>
         /// <returns></returns>
-        string DeleteFile(int fid, int uid);
+        string DeleteFile(string fid, string uid);
+
+        string UploadFileAfterCheckRepeat(FileInfo file, string uid,
+           ref string file_url, ref string file_name, bool DeleteFileAfterUploadToQiniu = true);
 
         /// <summary>
-        /// 上传到七牛，并保存到本地数据库，不重复上传同一个文件
+        /// 可能抛异常
         /// </summary>
-        /// <param name="file"></param>
-        /// <param name="uid"></param>
-        /// <param name="file_url"></param>
-        /// <param name="file_name"></param>
+        /// <param name="html"></param>
         /// <returns></returns>
-        string UploadFileAfterCheckRepeat(FileInfo file, int uid,
-            ref string file_url, ref string file_name, bool DeleteFileAfterUploadToQiniu = true);
+        string ReplaceHtmlImageUrl(string html);
     }
 }

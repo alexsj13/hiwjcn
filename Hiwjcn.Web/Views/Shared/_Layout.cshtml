@@ -1,6 +1,4 @@
-﻿@using Bll;
-
-@{
+﻿@{
     Layout = null;
 }
 
@@ -16,12 +14,9 @@
 
 <body>
     @Html.Partial(IncludePath("body_top"))
-    <!--导航-->
-    @Html.Partial(IncludePath("nav"))
 
     @RenderBody()
 
-    @Html.Partial(IncludePath("footer"))
     @Html.Partial(IncludePath("body_bottom"))
 </body>
 </html>

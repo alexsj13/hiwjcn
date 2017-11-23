@@ -1,6 +1,7 @@
 ﻿using Lib.helper;
 using System.Collections.Generic;
 using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 using System.Web.Mvc.Html;
 
@@ -59,6 +60,35 @@ namespace Lib.mvc
         {
             return Html.Partial(IncludePath(file_name));
         }
+        /// <summary>
+        /// 网站统计
+        /// </summary>
+        public MvcHtmlString Analysis() => IncludeView("Analysis");
+
+        public IHtmlString Pager(string name = "pager") => Html.Raw(ConvertHelper.GetString(ViewData[name]));
+
+        /// <summary>
+        /// 获取非空对象
+        /// </summary>
+        public M GetModel<M>(string key) where M : new() => Com.NewIfNull<M>(key);
+
+        /// <summary>
+        /// 设置模板
+        /// </summary>
+        public void SetLayout(string name)
+        {
+            if (!ValidateHelper.IsPlumpString(name))
+            {
+                this.Layout = null;
+                return;
+            }
+            this.Layout = IncludePath(name);
+        }
+
+        /// <summary>
+        /// 从ViewData中拿到非空数据
+        /// </summary>
+        public DT GetNotNullViewData<DT>(string key) where DT : new() => Com.NewIfNull<DT>(ViewData[key]);
         #endregion
 
         protected List<LangModel> Language { get; set; }
@@ -81,10 +111,11 @@ namespace Lib.mvc
         protected string Lang(string key, string deft = null)
         {
             LoadLangResource();
+            var context = HttpContext.Current;
 
             LangModel cur_lang = null;
 
-            var cookie_lang = CookieHelper.GetCookie(System.Web.HttpContext.Current, LanguageHelper.CookieName);
+            var cookie_lang = context.GetCookie(LanguageHelper.CookieName);
 
             if (ValidateHelper.IsPlumpString(cookie_lang))
             {
@@ -93,7 +124,7 @@ namespace Lib.mvc
             if (cur_lang == null)
             {
                 cur_lang = this.Language.Where(x => x.Default).FirstOrDefault();
-                CookieHelper.RemoveCookie(System.Web.HttpContext.Current, new string[] { LanguageHelper.CookieName });
+                context.RemoveCookie(new string[] { LanguageHelper.CookieName });
             }
 
             var word = cur_lang?.Dict?.Where(x => x.key == key)?.FirstOrDefault();

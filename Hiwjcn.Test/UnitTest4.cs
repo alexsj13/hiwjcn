@@ -27,6 +27,10 @@ namespace Hiwjcn.Test
             && (x.Email.Contains("gmail.com") || x.Flag > 0)
             && x.NickName == "wj";
 
+            Expression<Func<UserModel, object>> order = x => x.NickName;
+
+            var m = (System.Linq.Expressions.MemberExpression)order.Body;
+
             var body = (BinaryExpression)ex.Body;
 
             var left = (BinaryExpression)body.Left;

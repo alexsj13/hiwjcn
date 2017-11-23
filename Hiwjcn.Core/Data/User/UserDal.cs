@@ -1,7 +1,11 @@
 ﻿using Dapper;
 using Hiwjcn.Dal.User;
 using Lib.data;
+using Lib.helper;
 using Model.User;
+using System;
+using Lib.extension;
+using Lib.data.ef;
 
 namespace Dal.User
 {
@@ -17,13 +21,21 @@ namespace Dal.User
         /// <param name="uid"></param>
         /// <param name="b"></param>
         /// <returns></returns>
-        public int UpdateUserMask(int uid, byte[] b)
+        public int UpdateUserMask(string uid, byte[] b)
         {
             int count = 0;
             DBHelper.PrepareConnection(con =>
             {
-                var sql = "update wp_users set user_db_img=@img where user_id=@uid";
+                var sql = "delete from UserAvatar where UserUID=@uid";
                 count = con.Execute(sql, new { img = b, uid = uid });
+                var model = new UserAvatar()
+                {
+                    UID = Com.GetUUID(),
+                    UserUID = uid.ToString(),
+                    AvatarBytes = b,
+                    CreateTime = DateTime.Now
+                };
+                count = con.Insert(model);
             });
             return count;
         }
@@ -33,12 +45,12 @@ namespace Dal.User
         /// </summary>
         /// <param name="uid"></param>
         /// <returns></returns>
-        public byte[] ReadUserImage(int uid)
+        public byte[] ReadUserImage(string uid)
         {
             byte[] b = null;
             DBHelper.PrepareConnection(con =>
             {
-                var sql = "select user_db_img from wp_users where user_id=@uid limit 0,1";
+                var sql = "select AvatarBytes from UserAvatar where UserUID=@uid limit 0,1";
                 b = con.ExecuteScalar<byte[]>(sql, new { uid = uid });
             });
             return b;

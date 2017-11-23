@@ -7,6 +7,7 @@ using Nest;
 using log4net.Core;
 using Lib.helper;
 using Lib.extension;
+using Lib.data.elasticsearch;
 
 namespace Lib.log
 {

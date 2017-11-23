@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:tns="http://schemas.datacontract.org/2004/07/Lib.mvc" elementFormDefault="qualified" targetNamespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd3" namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.auth" />
+  <xs:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd4" namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.user" />
+  <xs:complexType name="_OfTokenModelM_PbxoawT">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="_Of{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="TokenModel" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.auth" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:ResJsonOfTokenModelM_PbxoawT">
+        <xs:sequence />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="_OfTokenModelM_PbxoawT" nillable="true" type="tns:_OfTokenModelM_PbxoawT" />
+  <xs:complexType name="ResJsonOfTokenModelM_PbxoawT">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="ResJsonOf{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="TokenModel" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.auth" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:ResultMsgOfTokenModelM_PbxoawT">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="code" nillable="true" type="xs:string" />
+          <xs:element xmlns:q1="http://schemas.datacontract.org/2004/07/Lib.mvc.auth" minOccurs="0" name="data" nillable="true" type="q1:TokenModel" />
+          <xs:element minOccurs="0" name="msg" nillable="true" type="xs:string" />
+          <xs:element minOccurs="0" name="success" type="xs:boolean" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="ResJsonOfTokenModelM_PbxoawT" nillable="true" type="tns:ResJsonOfTokenModelM_PbxoawT" />
+  <xs:complexType name="ResultMsgOfTokenModelM_PbxoawT">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="ResultMsgOf{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="TokenModel" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.auth" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element xmlns:q2="http://schemas.datacontract.org/2004/07/Lib.mvc.auth" minOccurs="0" name="Data" nillable="true" type="q2:TokenModel" />
+      <xs:element minOccurs="0" name="ErrorCode" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ErrorMsg" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="SafeCode" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="Success" type="xs:boolean" />
+      <xs:element minOccurs="0" name="Total" type="xs:int" />
+      <xs:element minOccurs="0" name="UserToken" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ResultMsgOfTokenModelM_PbxoawT" nillable="true" type="tns:ResultMsgOfTokenModelM_PbxoawT" />
+  <xs:complexType name="_OfLoginUserInfoy8_PbvK0I">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="_Of{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="LoginUserInfo" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.user" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:ResJsonOfLoginUserInfoy8_PbvK0I">
+        <xs:sequence />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="_OfLoginUserInfoy8_PbvK0I" nillable="true" type="tns:_OfLoginUserInfoy8_PbvK0I" />
+  <xs:complexType name="ResJsonOfLoginUserInfoy8_PbvK0I">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="ResJsonOf{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="LoginUserInfo" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.user" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:ResultMsgOfLoginUserInfoy8_PbvK0I">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="code" nillable="true" type="xs:string" />
+          <xs:element xmlns:q3="http://schemas.datacontract.org/2004/07/Lib.mvc.user" minOccurs="0" name="data" nillable="true" type="q3:LoginUserInfo" />
+          <xs:element minOccurs="0" name="msg" nillable="true" type="xs:string" />
+          <xs:element minOccurs="0" name="success" type="xs:boolean" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="ResJsonOfLoginUserInfoy8_PbvK0I" nillable="true" type="tns:ResJsonOfLoginUserInfoy8_PbvK0I" />
+  <xs:complexType name="ResultMsgOfLoginUserInfoy8_PbvK0I">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="ResultMsgOf{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="LoginUserInfo" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.user" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element xmlns:q4="http://schemas.datacontract.org/2004/07/Lib.mvc.user" minOccurs="0" name="Data" nillable="true" type="q4:LoginUserInfo" />
+      <xs:element minOccurs="0" name="ErrorCode" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ErrorMsg" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="SafeCode" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="Success" type="xs:boolean" />
+      <xs:element minOccurs="0" name="Total" type="xs:int" />
+      <xs:element minOccurs="0" name="UserToken" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ResultMsgOfLoginUserInfoy8_PbvK0I" nillable="true" type="tns:ResultMsgOfLoginUserInfoy8_PbvK0I" />
+  <xs:complexType name="_Ofstring">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="_Of{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="string" Namespace="http://www.w3.org/2001/XMLSchema" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:ResJsonOfstring">
+        <xs:sequence />
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="_Ofstring" nillable="true" type="tns:_Ofstring" />
+  <xs:complexType name="ResJsonOfstring">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="ResJsonOf{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="string" Namespace="http://www.w3.org/2001/XMLSchema" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:complexContent mixed="false">
+      <xs:extension base="tns:ResultMsgOfstring">
+        <xs:sequence>
+          <xs:element minOccurs="0" name="code" nillable="true" type="xs:string" />
+          <xs:element minOccurs="0" name="data" nillable="true" type="xs:string" />
+          <xs:element minOccurs="0" name="msg" nillable="true" type="xs:string" />
+          <xs:element minOccurs="0" name="success" type="xs:boolean" />
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+  <xs:element name="ResJsonOfstring" nillable="true" type="tns:ResJsonOfstring" />
+  <xs:complexType name="ResultMsgOfstring">
+    <xs:annotation>
+      <xs:appinfo>
+        <GenericType Name="ResultMsgOf{0}{#}" Namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" xmlns="http://schemas.microsoft.com/2003/10/Serialization/">
+          <GenericParameter Name="string" Namespace="http://www.w3.org/2001/XMLSchema" />
+        </GenericType>
+      </xs:appinfo>
+    </xs:annotation>
+    <xs:sequence>
+      <xs:element minOccurs="0" name="Data" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ErrorCode" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="ErrorMsg" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="SafeCode" nillable="true" type="xs:string" />
+      <xs:element minOccurs="0" name="Success" type="xs:boolean" />
+      <xs:element minOccurs="0" name="Total" type="xs:int" />
+      <xs:element minOccurs="0" name="UserToken" nillable="true" type="xs:string" />
+    </xs:sequence>
+  </xs:complexType>
+  <xs:element name="ResultMsgOfstring" nillable="true" type="tns:ResultMsgOfstring" />
+</xs:schema>

@@ -5,11 +5,15 @@ using System.Security;
 using System.Web;
 using System.Web.Hosting;
 using Lib.extension;
+using System.Threading.Tasks;
+using Lib.cache;
 
 namespace Lib.mvc
 {
     public static class ServerHelper
     {
+        public static string AppDataPath(this HttpServerUtility server) => server.MapPath("~/App_Data");
+
         /// <summary>
         /// 在请求上下文中缓存对象,不能缓存null对象
         /// </summary>
@@ -18,28 +22,52 @@ namespace Lib.mvc
         /// <param name="func"></param>
         /// <param name="context"></param>
         /// <returns></returns>
-        public static T CacheInHttpContext<T>(string key, Func<T> func, HttpContext context = null)
-            where T : class
+        public static T CacheInHttpContext<T>(this HttpContext context, string key, Func<T> func)
         {
-            context = context ?? HttpContext.Current;
-            var db = context?.Items;
-            if (db == null) { return func.Invoke(); }
-
-            T ret = null;
-
-            if (db.Contains(key))
+            if (context.Items.Contains(key))
             {
-                ret = db[key] as T;
-                if (ret != null)
+                var obj = context.Items[key];
+                if (obj != null && obj is CacheResult<T> data)
                 {
-                    return ret;
+                    return data.Result;
+                }
+                else
+                {
+                    return default(T);
                 }
             }
-            ret = func.Invoke();
-            if (ret == null) { throw new Exception("不能缓存null对象"); }
-            db[key] = ret;
-            return ret;
+            var d = func.Invoke();
+            context.Items[key] = new CacheResult<T>() { Result = d, Success = true };
+            return d;
         }
+
+        public static async Task<T> CacheInHttpContextAsync<T>(this HttpContext context, string key, Func<Task<T>> func)
+        {
+            if (context.Items.Contains(key))
+            {
+                var obj = context.Items[key];
+                if (obj != null && obj is CacheResult<T> data)
+                {
+                    return data.Result;
+                }
+                else
+                {
+                    return default(T);
+                }
+            }
+            var d = await func.Invoke();
+            if (d != null)
+            {
+                context.Items[key] = new CacheResult<T>() { Result = d, Success = true };
+            }
+            return d;
+        }
+
+        /// <summary>
+        /// 是否是服务器环境
+        /// </summary>
+        /// <returns></returns>
+        public static bool IsHosted() => HostingEnvironment.IsHosted;
 
         /// <summary>
         /// 获取绝对路径
@@ -58,6 +86,7 @@ namespace Lib.mvc
                 return MapPath(path);
             }
         }
+
         /// <summary>
         /// 获取绝对路径
         /// </summary>
@@ -67,6 +96,7 @@ namespace Lib.mvc
         {
             return GetMapPath(HttpContext.Current, path);
         }
+
         /// <summary>
         /// 来自nopcommerce的方法Maps a virtual path to a physical disk path.
         /// </summary>
@@ -84,6 +114,7 @@ namespace Lib.mvc
             path = path.Replace("~/", "").TrimStart('/').Replace('/', '\\');
             return Path.Combine(baseDirectory, path);
         }
+
         /// <summary>
         /// 获得当前应用程序的信任级别
         /// </summary>

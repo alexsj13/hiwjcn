@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Web.Mvc;
+using Lib.ioc;
 
 namespace Lib.mvc.attr
 {
@@ -21,20 +22,20 @@ namespace Lib.mvc.attr
 
         public override void OnActionExecuting(ActionExecutingContext filterContext)
         {
-            try
+            var sessionID = filterContext.HttpContext.Session.SessionID;
+            var key = $"{nameof(AntiReSubmitAttribute)}:{sessionID}";
+
+            var reqparams = filterContext.HttpContext.Request.Form.ToDict();
+            reqparams = reqparams.AddDict(filterContext.HttpContext.Request.QueryString.ToDict());
+
+            var dict = new SortedDictionary<string, string>(reqparams, new MyStringComparer());
+            var submitData = dict.ToUrlParam();
+            var (AreaName, ControllerName, ActionName) = filterContext.RouteData.GetA_C_A();
+            submitData = $"{AreaName}/{ControllerName}/{ActionName}/:{submitData}";
+            //读取缓存
+            AppContext.Scope(s =>
             {
-                var sessionID = filterContext.HttpContext.Session.SessionID;
-                var key = $"{nameof(AntiReSubmitAttribute)}:{sessionID}";
-
-                var reqparams = filterContext.HttpContext.Request.Form.ToDict();
-                reqparams = reqparams.AddDict(filterContext.HttpContext.Request.QueryString.ToDict());
-
-                var dict = new SortedDictionary<string, string>(reqparams, new MyStringComparer());
-                var submitData = dict.ToUrlParam();
-                var (AreaName, ControllerName, ActionName) = filterContext.RouteData.GetA_C_A();
-                submitData = $"{AreaName}/{ControllerName}/{ActionName}/:{submitData}";
-                //读取缓存
-                using (var cache = CacheManager.CacheProvider())
+                using (var cache = s.Resolve_<ICacheProvider>())
                 {
                     var data = cache.Get<string>(key);
                     if (data.Success)
@@ -42,7 +43,7 @@ namespace Lib.mvc.attr
                         if (data.Result == submitData)
                         {
                             filterContext.Result = ResultHelper.BadRequest(this.ErrorMessage);
-                            return;
+                            return true;
                         }
                     }
                     //10秒钟不能提交相同的数据
@@ -50,11 +51,8 @@ namespace Lib.mvc.attr
                     if (CacheSeconds == 0) { throw new Exception("缓存时间不能为0"); }
                     cache.Set(key, submitData, TimeSpan.FromSeconds(CacheSeconds));
                 }
-            }
-            catch (Exception e)
-            {
-                e.AddErrorLog("防止重复提交组件发生错误");
-            }
+                return true;
+            });
             base.OnActionExecuting(filterContext);
         }
     }

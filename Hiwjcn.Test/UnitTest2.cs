@@ -8,7 +8,7 @@ using System.Dynamic;
 using System.Reflection.Emit;
 using System.Reflection;
 using Newtonsoft.Json;
-using Lib.api;
+using Lib.extra.api;
 using Polly;
 using System.Threading;
 using Polly.Timeout;
@@ -21,6 +21,9 @@ using System.IO;
 using System.Linq;
 using Hiwjcn.Dal;
 using Autofac;
+using Lib.ioc;
+using Hiwjcn.Framework;
+using System.Data.Entity;
 
 namespace Hiwjcn.Test
 {
@@ -30,6 +33,11 @@ namespace Hiwjcn.Test
     [TestClass]
     public class UnitTest2
     {
+        public UnitTest2()
+        {
+            AppContext.AddExtraRegistrar(new CommonDependencyRegister());
+        }
+        
         [TestMethod]
         public void fasdfkjasldfajsdkfhasldfkj()
         {
@@ -65,17 +73,6 @@ namespace Hiwjcn.Test
                 {
 
                 }
-            }
-        }
-
-        [TestMethod]
-        public void efasync()
-        {
-            var ar = new[] { new { a = 1 }, new { a = 3 } };
-
-            using (var db = new EntityDB())
-            {
-                //
             }
         }
 
@@ -179,7 +176,7 @@ namespace Hiwjcn.Test
                     Url = "http://www.qq.com/"
                 };
                 var t = UmengPushHelper.PushAndroid(new UmengPushKeyConfig(), payload, new List<string>() { "6d28395cac6c427bb77fba889b9e54a5", "b11dfe19ef4d4f60860dda673dfa7863" });
-                var data = Lib.core.AsyncHelper.RunSync(() => t);
+                var data = Lib.helper.AsyncHelper.RunSync(() => t);
             }
             catch (Exception e)
             {
@@ -200,7 +197,7 @@ namespace Hiwjcn.Test
                     Url = "http://www.qq.com/"
                 };
                 var t = UmengPushHelper.PushIOS(new UmengPushKeyConfig(), payload, new List<string>() { "6d28395cac6c427bb77fba889b9e54a5", "b11dfe19ef4d4f60860dda673dfa7863" });
-                var data = Lib.core.AsyncHelper.RunSync(() => t);
+                var data = Lib.helper.AsyncHelper.RunSync(() => t);
             }
             catch (Exception e)
             { }

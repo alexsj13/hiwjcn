@@ -16,8 +16,6 @@ namespace Lib.mvc.attr
 {
     public abstract class _ActionFilterBaseAttribute : ActionFilterAttribute
     {
-        public abstract LoginStatus GetLoginStatus();
-
         protected ActionResult GetJson(object data)
         {
             return new JsonResult()

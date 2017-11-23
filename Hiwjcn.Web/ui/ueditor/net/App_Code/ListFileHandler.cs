@@ -24,34 +24,38 @@ public class ListFileManager : Handler
 
     public override void Process()
     {
-        var logincontext = AppContext.GetObject<LoginStatus>();
+        AppContext.Scope(x =>
+        {
+            var logincontext = x.Resolve_<LoginStatus>();
 
-        var loginuser = logincontext.GetLoginUser(Context);
-        if (loginuser == null)
-        {
-            State = "没有登陆";
+            var loginuser = logincontext.GetLoginUser(Context);
+            if (loginuser == null)
+            {
+                State = "没有登陆";
+                WriteResult();
+                return true;
+            }
+            Start = ConvertHelper.GetInt(Request["start"], -1);
+            Size = ConvertHelper.GetInt(Request["size"], -1);
+            if (Start < 0 || Size <= 0)
+            {
+                State = "参数错误";
+                WriteResult();
+                return true;
+            }
+            try
+            {
+                var upfileservice = x.Resolve_<IUpFileService>();
+                upfileservice.FindFiles(loginuser.UserID, Start, Size, ref FileList, ref Total);
+                State = "SUCCESS";
+            }
+            catch (Exception e)
+            {
+                State = e.Message;
+            }
             WriteResult();
-            return;
-        }
-        Start = ConvertHelper.GetInt(Request["start"], -1);
-        Size = ConvertHelper.GetInt(Request["size"], -1);
-        if (Start < 0 || Size <= 0)
-        {
-            State = "参数错误";
-            WriteResult();
-            return;
-        }
-        try
-        {
-            var upfileservice = AppContext.GetObject<IUpFileService>();
-            upfileservice.FindFiles(loginuser.IID, Start, Size, ref FileList, ref Total);
-            State = "SUCCESS";
-        }
-        catch (Exception e)
-        {
-            State = e.Message;
-        }
-        WriteResult();
+            return true;
+        });
     }
 
     private void WriteResult()

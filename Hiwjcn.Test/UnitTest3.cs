@@ -5,12 +5,35 @@ using Lib.extension;
 using Lib.infrastructure;
 using Hiwjcn.Core.Infrastructure.User;
 using Model.User;
+using System.Linq;
+using Lib.helper;
+using Model;
+using Lib.infrastructure.service;
+using Lib.infrastructure.entity;
 
 namespace Hiwjcn.Test
 {
     [TestClass]
     public class UnitTest3
     {
+        class tm : TreeEntityBase
+        { }
+
+        class trr : TreeServiceBase<tm>
+        { }
+
+        [TestMethod]
+        public void lkhkjhafdsafasdkgf()
+        {
+            var interfaces = typeof(trr).GetInterfaces();
+        }
+
+        [TestMethod]
+        public void strhide()
+        {
+            var list = new int[10].Select(x => Com.GetUUID().HideForSecurity()).ToList();
+        }
+
         [TestMethod]
         public void TestMethod1()
         {

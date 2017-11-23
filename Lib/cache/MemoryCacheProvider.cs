@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace Lib.cache
 {
     /// <summary>
-    /// Represents a manager for caching between HTTP requests (long term caching)
+    /// 内存缓存
     /// </summary>
     public class MemoryCacheProvider : CacheBase, ICacheProvider
     {
@@ -15,10 +15,7 @@ namespace Lib.cache
         /// </summary>
         protected ObjectCache Cache
         {
-            get
-            {
-                return MemoryCache.Default;
-            }
+            get => MemoryCache.Default ?? throw new Exception("无法使用内存缓存");
         }
 
         /// <summary>
@@ -29,14 +26,17 @@ namespace Lib.cache
         /// <returns>The value associated with the specified key.</returns>
         public virtual CacheResult<T> Get<T>(string key)
         {
-            var cache = new CacheResult<T>() { Success = false };
-            var bs = Cache[key] as byte[];
-            if (bs != null)
+            var data = Cache[key];
+            if (data is byte[] bs)
             {
-                cache.Result = Deserialize<T>(bs);
-                cache.Success = true;
+                var res = this.Deserialize<CacheResult<T>>(bs);
+                if (res != null)
+                {
+                    res.Success = true;
+                    return res;
+                }
             }
-            return cache;
+            return new CacheResult<T>() { Success = false };
         }
 
         /// <summary>
@@ -46,7 +46,9 @@ namespace Lib.cache
         {
             var policy = new CacheItemPolicy();
             policy.AbsoluteExpiration = DateTime.Now + expire;
-            Cache.Add(new CacheItem(key, Serialize(data)), policy);
+
+            var res = new CacheResult<object>() { Result = data, Success = true };
+            Cache.Add(new CacheItem(key, this.Serialize(res)), policy);
         }
 
         /// <summary>
@@ -56,7 +58,7 @@ namespace Lib.cache
         /// <returns>Result</returns>
         public virtual bool IsSet(string key)
         {
-            return (Cache.Contains(key));
+            return Cache.Contains(key);
         }
 
         /// <summary>
@@ -75,11 +77,15 @@ namespace Lib.cache
         public virtual void RemoveByPattern(string pattern)
         {
             var regex = new Regex(pattern, RegexOptions.Singleline | RegexOptions.Compiled | RegexOptions.IgnoreCase);
-            var keysToRemove = new List<String>();
+            var keysToRemove = new List<string>();
 
             foreach (var item in Cache)
+            {
                 if (regex.IsMatch(item.Key))
+                {
                     keysToRemove.Add(item.Key);
+                }
+            }
 
             foreach (string key in keysToRemove)
             {
@@ -93,7 +99,9 @@ namespace Lib.cache
         public virtual void Clear()
         {
             foreach (var item in Cache)
+            {
                 Remove(item.Key);
+            }
         }
 
         /// <summary>
@@ -101,7 +109,7 @@ namespace Lib.cache
         /// </summary>
         public virtual void Dispose()
         {
-            //
+            //do nothing
         }
     }
 }

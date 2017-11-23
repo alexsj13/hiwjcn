@@ -8,6 +8,11 @@ using Lib.core;
 using Lib.helper;
 using Lib.extension;
 using Lib.ioc;
+using System.IO;
+using System.Web;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Lib.mvc;
 
 namespace Lib.core
 {
@@ -196,6 +201,25 @@ namespace Lib.core
     /// </summary>
     public class JsonConfigProvider : ISettings
     {
+        private readonly JToken _config;
+        public JsonConfigProvider()
+        {
+            var path = ServerHelper.GetMapPath("~/App_Data");
+            this._config = JToken.Parse(File.ReadAllText(Path.Combine(path, "config.json")));
+            if (this._config == null) { throw new ArgumentException(nameof(this._config)); }
+        }
+
+        public string GetConnectionString(string name)
+        {
+            return (string)this._config.SelectToken($"$.connectionStrings[?(@.name=='{name}')]");
+        }
+
+        public string GetAppSetting(string name)
+        {
+            return (string)this._config.SelectToken($"$.appSettings[?(@.name=='{name}')]");
+        }
+
+
         public List<string> AllowDomains
         {
             get

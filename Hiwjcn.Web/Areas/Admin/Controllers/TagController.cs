@@ -1,4 +1,5 @@
 ﻿using Hiwjcn.Bll.Tag;
+using Lib.helper;
 using System.Web.Mvc;
 using WebLogic.Model.Tag;
 
@@ -17,14 +18,13 @@ namespace WebApp.Areas.Admin.Controllers
             });
         }
 
-        public ActionResult TagEdit(int? id)
+        public ActionResult TagEdit(string id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
-                id = id ?? 0;
-                if (id > 0)
+                if (ValidateHelper.IsPlumpString(id))
                 {
-                    var model = _TagBll.GetTagByID(id.Value);
+                    var model = _TagBll.GetTagByID(id);
                     ViewData["model"] = model;
                 }
                 return View();
@@ -37,12 +37,12 @@ namespace WebApp.Areas.Admin.Controllers
             return RunActionWhenLogin((loginuser) =>
             {
                 var model = new TagModel();
-                model.TagID = id ?? 0;
+                model.IID = id ?? 0;
                 model.TagName = name;
                 model.TagDesc = desc;
                 model.TagLink = link;
                 var res = string.Empty;
-                if (model.TagID > 0)
+                if (model.IID > 0)
                 {
                     res = _TagBll.UpdateTag(model);
                 }
@@ -56,13 +56,11 @@ namespace WebApp.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public ActionResult DeleteTagAction(int? id)
+        public ActionResult DeleteTagAction(string id)
         {
             return RunActionWhenLogin((loginuser) =>
             {
-                id = id ?? 0;
-                if (id <= 0) { return GetJsonRes("参数错误"); }
-                var res = _TagBll.DeleteTag(id.Value);
+                var res = _TagBll.DeleteTag(id);
                 return GetJsonRes(res);
             });
         }

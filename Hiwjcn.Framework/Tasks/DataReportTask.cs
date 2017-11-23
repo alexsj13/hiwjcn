@@ -38,11 +38,18 @@ namespace Hiwjcn.Framework.Tasks
 
         public override void Execute(IJobExecutionContext context)
         {
-            var start = DateTime.Now;
-            //do something
-            Thread.Sleep(new Random((int)DateTime.Now.Ticks).Next(10) * 1000);
-            var end = DateTime.Now;
-            $"{start}开始汇报数据，{end}结束。耗时：{(end - start).TotalSeconds}秒".AddBusinessInfoLog();
+            try
+            {
+                var start = DateTime.Now;
+                //do something
+                Thread.Sleep(new Random((int)DateTime.Now.Ticks).Next(10) * 1000);
+                var end = DateTime.Now;
+                $"{start}开始汇报数据，{end}结束。耗时：{(end - start).TotalSeconds}秒".AddBusinessInfoLog();
+            }
+            catch (Exception e)
+            {
+                e.AddErrorLog(this.Name);
+            }
         }
     }
 }

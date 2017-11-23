@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WebLogic.Model.User;
+using Lib.data.ef;
 
 namespace WebLogic.Dal.User
 {

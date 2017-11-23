@@ -5,27 +5,20 @@ using System.Text;
 using Model;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Lib.infrastructure.entity;
 
 namespace WebLogic.Model.Page
 {
     /// <summary>
     /// 内容
     /// </summary>
-    [Table("wp_section")]
+    [Table("sys_section")]
     public class SectionModel : BaseEntity
     {
         public SectionModel()
         {
             SectionName = SectionDescription = SectionContent = string.Empty;
         }
-
-        /// <summary>
-        /// id
-        /// </summary>
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        [Column("section_id")]
-        public virtual int SectionID { get; set; }
 
         /// <summary>
         /// 名称
@@ -45,12 +38,15 @@ namespace WebLogic.Model.Page
         /// 描述
         /// </summary>
         [Column("section_description")]
+        [StringLength(100, ErrorMessage = "描述内容过长")]
+        [Required(ErrorMessage = "描述不能为空")]
         public virtual string SectionDescription { get; set; }
 
         /// <summary>
         /// 内容
         /// </summary>
         [Column("section_content")]
+        [DataType(DataType.Html)]
         public virtual string SectionContent { get; set; }
 
         /// <summary>
@@ -64,13 +60,7 @@ namespace WebLogic.Model.Page
         /// 关联key
         /// </summary>
         [Column("rel_group")]
+        [MaxLength(20)]
         public virtual string RelGroup { get; set; }
-
-        /// <summary>
-        /// 更新时间
-        /// </summary>
-        [Column("update_time")]
-        public virtual DateTime UpdateTime { get; set; }
-
     }
 }

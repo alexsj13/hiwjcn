@@ -19,28 +19,15 @@ namespace Hiwjcn.Bll.Tag
             //
         }
 
-        public override string CheckModel(TagModel model)
-        {
-            if (model == null) { return "对象为空"; }
-            if (!ValidateHelper.IsPlumpString(model.TagName)) { return "标签名为空"; }
-            if (!ValidateHelper.IsLenInRange(model.TagName, 1, 20)) { return "标签名长度为1~20"; }
-            return string.Empty;
-        }
-
         /// <summary>
         /// 通过id获取标签
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public TagModel GetTagByID(int id)
+        public TagModel GetTagByID(string id)
         {
-            if (id <= 0) { return null; }
-            var list = GetList(new List<int>() { id }, take: 1);
-            if (ValidateHelper.IsPlumpList(list))
-            {
-                return list[0];
-            }
-            return null;
+            var tagdal = new TagDal();
+            return tagdal.GetFirst(x => x.UID == id);
         }
 
         /// <summary>
@@ -50,26 +37,20 @@ namespace Hiwjcn.Bll.Tag
         /// <param name="skip"></param>
         /// <param name="take"></param>
         /// <returns></returns>
-        public List<TagModel> GetList(List<int> ids = null, int skip = 0, int take = 1000)
+        public List<TagModel> GetList(List<string> ids = null, int skip = 0, int take = 1000)
         {
-            ids = ConvertHelper.NotNullList(ids).Where(x => x > 0).ToList();
-            var key = Com.GetCacheKey("TagBll.GetList:", string.Join(",", ids), skip.ToString(), take.ToString());
-
-            return Cache(key, () =>
+            var tagdal = new TagDal();
+            List<TagModel> list = null;
+            tagdal.PrepareIQueryable((query) =>
             {
-                var tagdal = new TagDal();
-                List<TagModel> list = null;
-                tagdal.PrepareIQueryable((query) =>
+                if (ValidateHelper.IsPlumpList(ids))
                 {
-                    if (ValidateHelper.IsPlumpList(ids))
-                    {
-                        query = query.Where(x => ids.Contains(x.TagID));
-                    }
-                    list = query.OrderByDescending(x => x.TagID).Skip(skip).Take(take).ToList();
-                    return true;
-                });
-                return list;
+                    query = query.Where(x => ids.Contains(x.UID));
+                }
+                list = query.OrderByDescending(x => x.CreateTime).Skip(skip).Take(take).ToList();
+                return true;
             });
+            return list;
         }
 
         /// <summary>
@@ -94,26 +75,23 @@ namespace Hiwjcn.Bll.Tag
         /// <returns></returns>
         public string UpdateTag(TagModel updatemodel)
         {
-            if (updatemodel.TagID <= 0) { return "ID为空"; }
-
             var tagdal = new TagDal();
-            var model = tagdal.GetFirst(x => x.TagID == updatemodel.TagID);
+            var model = tagdal.GetFirst(x => x.UID == updatemodel.UID);
             if (model == null) { return "数据不存在"; }
 
             model.TagName = updatemodel.TagName;
             model.TagDesc = updatemodel.TagDesc;
             model.TagLink = updatemodel.TagLink;
 
-            if (tagdal.Exist(x => x.TagName == model.TagName && x.TagID != model.TagID)) { return "存在同名标签"; }
+            if (tagdal.Exist(x => x.TagName == model.TagName && x.UID != model.UID)) { return "存在同名标签"; }
 
             return tagdal.Update(model) > 0 ? SUCCESS : "添加失败";
         }
 
-        public string DeleteTag(int id)
+        public string DeleteTag(string id)
         {
-            if (id <= 0) { return "ID为空"; }
             var tagdal = new TagDal();
-            var model = tagdal.GetFirst(x => x.TagID == id);
+            var model = tagdal.GetFirst(x => x.UID == id);
             if (model == null) { return "数据不存在"; }
             return tagdal.Delete(model) > 0 ? SUCCESS : "删除失败";
         }

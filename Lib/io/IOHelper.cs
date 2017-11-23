@@ -59,7 +59,11 @@ namespace Lib.io
         {
             using (postFile.InputStream)
             {
-                var b = new byte[postFile.InputStream.Length];
+                var b = new byte[postFile.ContentLength];
+                if (postFile.InputStream.CanSeek)
+                {
+                    postFile.InputStream.Seek(0, SeekOrigin.Begin);
+                }
                 postFile.InputStream.Read(b, 0, b.Length);
                 return b;
             }

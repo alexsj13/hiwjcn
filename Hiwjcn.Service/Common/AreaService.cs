@@ -25,11 +25,6 @@ namespace WebLogic.Bll.Sys
             //
         }
 
-        public override string CheckModel(AreaModel model)
-        {
-            return base.CheckModel(model);
-        }
-
         /// <summary>
         /// 通过父级获取子集
         /// </summary>
@@ -38,12 +33,9 @@ namespace WebLogic.Bll.Sys
         public List<AreaModel> GetAreas(int level, string parent, int max_count = 500)
         {
             if (level < 0 || !ValidateHelper.IsPlumpString(parent)) { return null; }
-            string key = Com.GetCacheKey("AreaBll.GetAreas", level.ToString(), parent, max_count.ToString());
-            return Cache(key, () =>
-            {
-                var dal = new AreaDal();
-                return dal.GetList(x => x.AreaLevel == level && x.ParentID == parent, count: max_count);
-            });
+
+            var dal = new AreaDal();
+            return dal.GetList(x => x.AreaLevel == level && x.ParentID == parent, count: max_count);
         }
 
     }

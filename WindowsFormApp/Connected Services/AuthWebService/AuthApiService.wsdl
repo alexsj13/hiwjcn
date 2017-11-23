@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:wsap="http://schemas.xmlsoap.org/ws/2004/08/addressing/policy" xmlns:wsa10="http://www.w3.org/2005/08/addressing" xmlns:tns="http://tempuri.org/" xmlns:msc="http://schemas.microsoft.com/ws/2005/12/wsdl/contract" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:wsx="http://schemas.xmlsoap.org/ws/2004/09/mex" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsam="http://www.w3.org/2007/05/addressing/metadata" xmlns:wsa="http://schemas.xmlsoap.org/ws/2004/08/addressing" xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:wsaw="http://www.w3.org/2006/05/addressing/wsdl" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:xsd="http://www.w3.org/2001/XMLSchema" name="AuthApiService" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <xsd:schema targetNamespace="http://tempuri.org/Imports">
+      <xsd:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd0" namespace="http://tempuri.org/" />
+      <xsd:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd1" namespace="http://schemas.microsoft.com/2003/10/Serialization/" />
+      <xsd:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd2" namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" />
+      <xsd:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd3" namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.auth" />
+      <xsd:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd4" namespace="http://schemas.datacontract.org/2004/07/Lib.mvc.user" />
+      <xsd:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd5" namespace="http://schemas.microsoft.com/2003/10/Serialization/Arrays" />
+    </xsd:schema>
+  </wsdl:types>
+  <wsdl:message name="IAuthApiService_GetAccessToken_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetAccessToken" />
+  </wsdl:message>
+  <wsdl:message name="IAuthApiService_GetAccessToken_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetAccessTokenResponse" />
+  </wsdl:message>
+  <wsdl:message name="IAuthApiService_GetLoginUserInfoByToken_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetLoginUserInfoByToken" />
+  </wsdl:message>
+  <wsdl:message name="IAuthApiService_GetLoginUserInfoByToken_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetLoginUserInfoByTokenResponse" />
+  </wsdl:message>
+  <wsdl:message name="IAuthApiService_GetAuthCodeByOneTimeCode_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetAuthCodeByOneTimeCode" />
+  </wsdl:message>
+  <wsdl:message name="IAuthApiService_GetAuthCodeByOneTimeCode_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetAuthCodeByOneTimeCodeResponse" />
+  </wsdl:message>
+  <wsdl:message name="IAuthApiService_GetAuthCodeByPassword_InputMessage">
+    <wsdl:part name="parameters" element="tns:GetAuthCodeByPassword" />
+  </wsdl:message>
+  <wsdl:message name="IAuthApiService_GetAuthCodeByPassword_OutputMessage">
+    <wsdl:part name="parameters" element="tns:GetAuthCodeByPasswordResponse" />
+  </wsdl:message>
+  <wsdl:portType name="IAuthApiService">
+    <wsdl:operation name="GetAccessToken">
+      <wsdl:input wsaw:Action="http://tempuri.org/IAuthApiService/GetAccessToken" message="tns:IAuthApiService_GetAccessToken_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IAuthApiService/GetAccessTokenResponse" message="tns:IAuthApiService_GetAccessToken_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetLoginUserInfoByToken">
+      <wsdl:input wsaw:Action="http://tempuri.org/IAuthApiService/GetLoginUserInfoByToken" message="tns:IAuthApiService_GetLoginUserInfoByToken_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IAuthApiService/GetLoginUserInfoByTokenResponse" message="tns:IAuthApiService_GetLoginUserInfoByToken_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAuthCodeByOneTimeCode">
+      <wsdl:input wsaw:Action="http://tempuri.org/IAuthApiService/GetAuthCodeByOneTimeCode" message="tns:IAuthApiService_GetAuthCodeByOneTimeCode_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IAuthApiService/GetAuthCodeByOneTimeCodeResponse" message="tns:IAuthApiService_GetAuthCodeByOneTimeCode_OutputMessage" />
+    </wsdl:operation>
+    <wsdl:operation name="GetAuthCodeByPassword">
+      <wsdl:input wsaw:Action="http://tempuri.org/IAuthApiService/GetAuthCodeByPassword" message="tns:IAuthApiService_GetAuthCodeByPassword_InputMessage" />
+      <wsdl:output wsaw:Action="http://tempuri.org/IAuthApiService/GetAuthCodeByPasswordResponse" message="tns:IAuthApiService_GetAuthCodeByPassword_OutputMessage" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="BasicHttpBinding_IAuthApiService" type="tns:IAuthApiService">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="GetAccessToken">
+      <soap:operation soapAction="http://tempuri.org/IAuthApiService/GetAccessToken" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetLoginUserInfoByToken">
+      <soap:operation soapAction="http://tempuri.org/IAuthApiService/GetLoginUserInfoByToken" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAuthCodeByOneTimeCode">
+      <soap:operation soapAction="http://tempuri.org/IAuthApiService/GetAuthCodeByOneTimeCode" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetAuthCodeByPassword">
+      <soap:operation soapAction="http://tempuri.org/IAuthApiService/GetAuthCodeByPassword" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="AuthApiService">
+    <wsdl:port name="BasicHttpBinding_IAuthApiService" binding="tns:BasicHttpBinding_IAuthApiService">
+      <soap:address location="http://localhost:59840/Service/AuthApiService.svc" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>

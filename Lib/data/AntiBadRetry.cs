@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Lib.cache;
+using Lib.ioc;
 using Lib.helper;
 
 namespace Lib.data
@@ -19,26 +20,27 @@ namespace Lib.data
         public static string RedisPreventTryLogin(string key, Func<bool> func)
         {
             var time = DateTime.Now.AddMinutes(-30);
-            using (var cache = CacheManager.CacheProvider())
+            return AppContext.Scope(s =>
             {
-                var cachedata = cache.Get<List<DateTime>>(key);
-                var list = cachedata.Success ? cachedata.Result : new List<DateTime>();
-                list = ConvertHelper.NotNullList(list).Where(x => x > time).ToList();
-
-                if (list.Count >= 3)
+                using (var cache = s.Resolve_<ICacheProvider>())
                 {
-                    //先判断验证码，否则提示错误
-                    return "超过尝试次数";
-                }
+                    var list = cache.Get<List<DateTime>>(key).Result;
 
-                if (!func.Invoke())
-                {
-                    //登录失败，添加错误时间
-                    list.Add(DateTime.Now);
+                    if (list.Count >= 3)
+                    {
+                        //先判断验证码，否则提示错误
+                        return "超过尝试次数";
+                    }
+
+                    if (!func.Invoke())
+                    {
+                        //登录失败，添加错误时间
+                        list.Add(DateTime.Now);
+                    }
+                    cache.Set(key, list, TimeSpan.FromSeconds(Math.Abs((DateTime.Now - time).TotalSeconds)));
+                    return "";
                 }
-                cache.Set(key, list, TimeSpan.FromSeconds(Math.Abs((DateTime.Now - time).TotalSeconds)));
-                return "";
-            }
+            });
         }
     }
 }

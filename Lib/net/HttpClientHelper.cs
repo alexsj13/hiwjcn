@@ -3,6 +3,7 @@ using Lib.extension;
 using Lib.helper;
 using Lib.io;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
@@ -14,12 +15,26 @@ using System.Threading.Tasks;
 
 namespace Lib.net
 {
-    /// <summary>
-    /// 请求方法
-    /// </summary>
-    public enum RequestMethodEnum : int
+    public class HttpClientManager : StaticClientManager<HttpClient>
     {
-        GET = 1, POST = 2, PUT = 3, DELETE = 4
+        public static readonly HttpClientManager Instance = new HttpClientManager();
+
+        public override string DefaultKey => "default";
+
+        public override bool CheckClient(HttpClient ins)
+        {
+            return ins != null;
+        }
+
+        public override HttpClient CreateNewClient(string key)
+        {
+            return new HttpClient();
+        }
+
+        public override void DisposeClient(HttpClient ins)
+        {
+            ins?.Dispose();
+        }
     }
 
     /// <summary>
@@ -27,40 +42,6 @@ namespace Lib.net
     /// </summary>
     public static class HttpClientHelper
     {
-        private static string GetMethod(RequestMethodEnum m)
-        {
-            return m.ToString();
-        }
-
-        private static ByteArrayContent CreateFileContent(FileModel f, string key)
-        {
-            var fileContent = new ByteArrayContent(f.BytesArray);
-            fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
-            {
-                Name = key,
-                FileName = f.FileName,
-                Size = f.Size
-            };
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue(f.ContentType);
-            return fileContent;
-        }
-
-        /// <summary>
-        /// 用的.NET4.5中httpclient的简易封装
-        /// </summary>
-        public static void SendHttpRequest(
-            string url,
-            Dictionary<string, string> param,
-            Dictionary<string, FileModel> files,
-            List<Cookie> cookies,
-            RequestMethodEnum method,
-            int timeout_second,
-            VoidFunc<HttpResponseMessage> handler)
-        {
-            var t = SendHttpRequestAsync(url, param, files, cookies, method, timeout_second, handler);
-            AsyncHelper.RunSync(() => t);
-        }
-
         /// <summary>
         /// 用的.NET4.5中httpclient的简易封装
         /// </summary>
@@ -72,10 +53,11 @@ namespace Lib.net
         /// <param name="timeout_second"></param>
         /// <param name="handler"></param>
         /// <returns></returns>
+        [Obsolete(nameof(HttpClient) + "有bug")]
         public static async Task SendHttpRequestAsync(
             string url,
             Dictionary<string, string> param,
-            Dictionary<string, FileModel> files,
+            Dictionary<string, string> files,
             List<Cookie> cookies,
             RequestMethodEnum method,
             int timeout_second,
@@ -87,13 +69,7 @@ namespace Lib.net
                 //创建cookie
                 if (ValidateHelper.IsPlumpList(cookies))
                 {
-                    var cookieContainer = new System.Net.CookieContainer();
-                    cookies.ForEach(x =>
-                    {
-                        cookieContainer.Add(u, x);
-                    });
-                    httpHandler.UseCookies = true;
-                    httpHandler.CookieContainer = cookieContainer;
+                    httpHandler.SetCookies(cookies, u);
                 }
                 using (var client = new HttpClient(httpHandler))
                 {
@@ -107,7 +83,6 @@ namespace Lib.net
                     if (method == RequestMethodEnum.POST)
                     {
                         //使用MultipartFormDataContent请参考邮件里的记录
-                        if (param == null) { param = new Dictionary<string, string>(); }
                         //拼url传参
                         //using (var urlContent = new FormUrlEncodedContent(param)) { }
                         //form提交
@@ -115,16 +90,13 @@ namespace Lib.net
                         {
                             if (ValidateHelper.IsPlumpDict(param))
                             {
-                                foreach (var key in param.Keys)
-                                {
-                                    formContent.Add(new StringContent(param[key]), key);
-                                }
+                                formContent.AddParam_(param);
                             }
                             if (ValidateHelper.IsPlumpDict(files))
                             {
-                                foreach (var key in files.Keys)
+                                foreach (var kv in files)
                                 {
-                                    formContent.Add(CreateFileContent(files[key], key), key);
+                                    formContent.AddFile_(kv.Key, kv.Value);
                                 }
                             }
                             response = await client.PostAsync(u, formContent);
@@ -156,6 +128,7 @@ namespace Lib.net
         /// <summary>
         /// 提交json，并返回字符串
         /// </summary>
+        [Obsolete(nameof(HttpClient) + "有bug")]
         public static async Task<string> PostJsonAsync(string url, object jsonObj, int? timeout_second = null)
         {
             using (var client = new HttpClient())
@@ -172,6 +145,7 @@ namespace Lib.net
         /// <summary>
         /// 提交post请求
         /// </summary>
+        [Obsolete(nameof(HttpClient) + "有bug")]
         public static async Task<string> PostAsync(string url, Dictionary<string, string> param, int? timeout_second = null)
         {
             var u = new Uri(url);
@@ -185,10 +159,7 @@ namespace Lib.net
                 {
                     if (ValidateHelper.IsPlumpDict(param))
                     {
-                        foreach (var key in param.Keys)
-                        {
-                            formContent.Add(new StringContent(param[key]), key);
-                        }
+                        formContent.AddParam_(param);
                     }
                     var response = await client.PostAsync(u, formContent);
                     return await response.Content.ReadAsStringAsync();
@@ -203,6 +174,7 @@ namespace Lib.net
         /// <param name="param"></param>
         /// <param name="timeout_second"></param>
         /// <returns></returns>
+        [Obsolete(nameof(HttpClient) + "有bug")]
         public static async Task<string> PostAsync_(string url, object param, int? timeout_second = null)
         {
             return await PostAsync(url, Com.ObjectToStringDict(param), timeout_second);
@@ -211,6 +183,7 @@ namespace Lib.net
         /// <summary>
         /// 提交get请求
         /// </summary>
+        [Obsolete(nameof(HttpClient) + "有bug")]
         public static async Task<string> GetAsync(string url, int? timeout_second = null)
         {
             var u = new Uri(url);
@@ -226,15 +199,26 @@ namespace Lib.net
         }
 
         /// <summary>
-        /// postjson
+        /// post json，测试成功
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="json"></param>
+        /// <returns></returns>
+        public static string PostJson(string url, string json)
+        {
+            var data = Encoding.UTF8.GetBytes(json);
+            return Send(url, data, "application/json");
+        }
+
+        /// <summary>
+        /// post json，测试成功
         /// </summary>
         /// <param name="url"></param>
         /// <param name="jsonObj"></param>
         /// <returns></returns>
         public static string PostJson(string url, object jsonObj)
         {
-            var data = Encoding.UTF8.GetBytes(jsonObj.ToJson());
-            return Send(url, data, "text/json");
+            return PostJson(url, (jsonObj ?? throw new ArgumentException("json对象为空")).ToJson());
         }
 
         /// <summary>
@@ -245,7 +229,11 @@ namespace Lib.net
         /// <returns></returns>
         public static string Post(string url, Dictionary<string, string> param)
         {
-            var data = Encoding.UTF8.GetBytes(param.ToUrlParam());
+            var data = default(byte[]);
+            if (ValidateHelper.IsPlumpDict(param))
+            {
+                data = Encoding.UTF8.GetBytes(param.ParamNotNull().ToUrlParam());
+            }
             return Send(url, data, "application/x-www-form-urlencoded");
         }
 
@@ -257,7 +245,12 @@ namespace Lib.net
         /// <returns></returns>
         public static string Post_(string url, object param)
         {
-            return Post(url, Com.ObjectToStringDict(param));
+            var data = default(Dictionary<string, string>);
+            if (param != null)
+            {
+                data = Com.ObjectToStringDict(param);
+            }
+            return Post(url, data);
         }
 
         /// <summary>
@@ -270,17 +263,10 @@ namespace Lib.net
             return Send(url, null, string.Empty, RequestMethodEnum.GET);
         }
 
-        /// <summary>
-        /// send request
-        /// </summary>
-        /// <param name="url"></param>
-        /// <param name="data"></param>
-        /// <param name="contentType"></param>
-        /// <param name="method"></param>
-        /// <param name="timeout_second"></param>
-        /// <returns></returns>
-        public static string Send(string url, byte[] data, string contentType,
-            RequestMethodEnum method = RequestMethodEnum.POST, int? timeout_second = 30)
+        public static void SendCore(string url, Action<HttpWebResponse, HttpStatusCode> handler,
+            List<Cookie> cookies = null,
+            byte[] data = null, string contentType = null, RequestMethodEnum method = RequestMethodEnum.POST,
+            TimeSpan? timeout = null, int[] ensure_http_code = null)
         {
             HttpWebRequest req = null;
             HttpWebResponse res = null;
@@ -288,77 +274,12 @@ namespace Lib.net
             {
                 //连接到目标网页
                 req = (HttpWebRequest)WebRequest.Create(url);
-                if (timeout_second != null)
-                {
-                    req.Timeout = timeout_second.Value * 1000;
-                }
-                req.Method = GetMethod(method);
-
-                if (ValidateHelper.IsPlumpList(data))
-                {
-                    if (ValidateHelper.IsPlumpString(contentType))
-                    {
-                        req.ContentType = contentType;
-                    }
-                    req.ContentLength = data.Length;
-                    using (var stream = req.GetRequestStream())
-                    {
-                        stream.Write(data, 0, data.Length);
-                    }
-                }
-
-                res = (HttpWebResponse)req.GetResponse();
-                using (var s = res.GetResponseStream())
-                {
-                    return ConvertHelper.StreamToString(s);
-                }
-            }
-            catch (Exception e)
-            {
-                e.AddErrorLog();
-                throw e;
-            }
-            finally
-            {
-                try
-                {
-                    req?.Abort();
-                }
-                catch (Exception e)
-                {
-                    e.AddLog(typeof(HttpClientHelper));
-                }
-                res?.Dispose();
-            }
-        }
-
-        /// <summary>
-        /// 处理请求
-        /// </summary>
-        /// <param name="url"></param>
-        /// <param name="param"></param>
-        /// <param name="cookies"></param>
-        /// <param name="method"></param>
-        /// <param name="timeout_second"></param>
-        /// <param name="handler"></param>
-        public static void HttpRequestHandler(
-            string url,
-            Dictionary<string, string> param,
-            List<Cookie> cookies,
-            RequestMethodEnum method,
-            int timeout_second,
-            VoidFunc<HttpWebResponse, HttpStatusCode> handler)
-        {
-            HttpWebRequest req = null;
-            HttpWebResponse res = null;
-            try
-            {
-                //连接到目标网页
-                req = (HttpWebRequest)WebRequest.Create(url);
-                req.Timeout = timeout_second * 1000;//10s请求超时
-                req.Method = GetMethod(method);
-                req.ContentType = "application/x-www-form-urlencoded";
-                //添加cookie
+                //timeout
+                timeout = timeout ?? TimeSpan.FromSeconds(30);
+                req.Timeout = (int)timeout.Value.TotalMilliseconds;
+                //method
+                req.Method = method.GetMethodString();
+                //cookie
                 if (ValidateHelper.IsPlumpList(cookies))
                 {
                     req.CookieContainer = new CookieContainer();
@@ -367,23 +288,31 @@ namespace Lib.net
                         req.CookieContainer.Add(c);
                     }
                 }
-                //如果是post并且有参数
-                if (method == RequestMethodEnum.POST && ValidateHelper.IsPlumpDict(param))
+                //content type
+                if (ValidateHelper.IsPlumpString(contentType))
                 {
-                    var post_data = param.ToUrlParam();
-                    var data = Encoding.UTF8.GetBytes(post_data);
+                    req.ContentType = contentType;
+                }
+                //data
+                if (ValidateHelper.IsPlumpList(data))
+                {
+                    req.ContentLength = data.Length;
                     using (var stream = req.GetRequestStream())
                     {
                         stream.Write(data, 0, data.Length);
                     }
                 }
+                //response
                 res = (HttpWebResponse)req.GetResponse();
+                //ensure http status
+                if (ValidateHelper.IsPlumpList(ensure_http_code) && !ensure_http_code.Contains((int)res.StatusCode))
+                {
+                    throw new Exception($"{url}请求的返回码：{(int)res.StatusCode}不在允许的范围内：{",".Join_(ensure_http_code)}");
+                }
+
+                //callback
                 handler.Invoke(res, res.StatusCode);
-            }
-            catch (Exception e)
-            {
-                e.AddErrorLog();
-                throw e;
+
             }
             finally
             {
@@ -393,10 +322,35 @@ namespace Lib.net
                 }
                 catch (Exception e)
                 {
-                    e.AddLog(typeof(HttpClientHelper));
+                    e.AddErrorLog();
                 }
                 res?.Dispose();
             }
+        }
+
+        /// <summary>
+        /// send request
+        /// </summary>
+        public static string Send(string url, byte[] data = null, string contentType = null,
+            RequestMethodEnum method = RequestMethodEnum.POST, int? timeout_second = 30,
+            int[] ensure_http_code = null)
+        {
+            var response_data = string.Empty;
+            Action<HttpWebResponse, HttpStatusCode> callback = (res, code) =>
+            {
+                using (var s = res.GetResponseStream())
+                {
+                    response_data = ConvertHelper.StreamToString(s);
+                }
+            };
+            TimeSpan? to = null;
+            if (timeout_second != null)
+            {
+                to = TimeSpan.FromSeconds(timeout_second.Value);
+            }
+            SendCore(url, callback, data: data, contentType: contentType, method: method, timeout: to, ensure_http_code: ensure_http_code);
+
+            return response_data;
         }
 
         /// <summary>
@@ -425,7 +379,7 @@ namespace Lib.net
         public static UpLoadFileResult DownloadFile(string url, string save_path)
         {
             var model = new UpLoadFileResult();
-            HttpRequestHandler(url, null, null, RequestMethodEnum.GET, 1000 * 60, (res, status) =>
+            Action<HttpWebResponse, HttpStatusCode> callback = (res, status) =>
             {
                 if (status != HttpStatusCode.OK) { throw new Exception($"status:{status}"); }
                 using (var s = res.GetResponseStream())
@@ -465,7 +419,10 @@ namespace Lib.net
                         model.SuccessUpload = true;
                     }
                 }
-            });
+            };
+
+            SendCore(url, callback, method: RequestMethodEnum.GET, timeout: TimeSpan.FromSeconds(60));
+
             return model;
         }
 
@@ -473,25 +430,14 @@ namespace Lib.net
         /// 返回描述本地计算机上的网络接口的对象(网络接口也称为网络适配器)。
         /// </summary>
         /// <returns></returns>
-        public static NetworkInterface[] NetCardInfo()
-        {
-            return NetworkInterface.GetAllNetworkInterfaces();
-        }
+        public static NetworkInterface[] NetCardInfo() => NetworkInterface.GetAllNetworkInterfaces();
 
         ///<summary>
         /// 通过NetworkInterface读取网卡Mac
         ///</summary>
         ///<returns></returns>
-        public static List<string> GetMacByNetworkInterface()
-        {
-            List<string> macs = new List<string>();
-            NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
-            foreach (NetworkInterface ni in interfaces)
-            {
-                macs.Add(ni.GetPhysicalAddress().ToString());
-            }
-            return macs;
-        }
+        public static List<string> GetMacByNetworkInterface() =>
+            NetCardInfo().Select(x => x.GetPhysicalAddress()?.ToString()).Where(x => ValidateHelper.IsPlumpString(x)).ToList();
 
     }
 }

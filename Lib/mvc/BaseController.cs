@@ -2,6 +2,7 @@
 using Lib.extension;
 using Lib.helper;
 using Lib.ioc;
+using Lib.mvc.auth;
 using Lib.mvc.user;
 using System;
 using System.Linq;
@@ -10,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Web.Mvc;
 using System.Configuration;
+using System.Net;
 
 namespace Lib.mvc
 {
@@ -24,7 +26,7 @@ namespace Lib.mvc
 
         public BaseController()
         {
-            X = new WebWorkContext();
+            this.X = new WebWorkContext();
         }
 
         [NonAction]
@@ -77,6 +79,19 @@ namespace Lib.mvc
         }
 
         /// <summary>
+        /// 获取jsonp
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="callback"></param>
+        /// <returns></returns>
+        [NonAction]
+        public ActionResult GetJsonp(object obj, string callback = "callback")
+        {
+            var func = this.Request.QueryString[callback];
+            return Content($"{func}({obj.ToJson()})", "text/javascript");
+        }
+
+        /// <summary>
         /// 判断是否成功
         /// </summary>
         /// <param name="msg"></param>
@@ -87,12 +102,10 @@ namespace Lib.mvc
         /// <summary>
         /// 获取默认的json
         /// </summary>
-        /// <param name="errmsg"></param>
-        /// <returns></returns>
         [NonAction]
-        public ActionResult GetJsonRes(string errmsg)
+        public ActionResult GetJsonRes(string errmsg, string code = default(string))
         {
-            return GetJson(new _() { success = IsSuccess(errmsg), msg = errmsg });
+            return GetJson(new _() { success = IsSuccess(errmsg), msg = errmsg, code = code });
         }
 
         /// <summary>
@@ -160,29 +173,53 @@ namespace Lib.mvc
 
         #region action处理
 
-        protected ActionResult ErrorResult { get; set; }
-        protected ActionResult NoLoginResult { get; set; }
-        protected ActionResult NoPermissionResult { get; set; }
         protected List<string> PermissionList { get; set; }
+        protected List<string> ScopeList { get; set; }
+        protected Func<ActionResult> NoLoginResult { get; set; }
+        protected Func<ActionResult> NoPermissionResult { get; set; }
+        protected Func<ActionResult> ErrorResult { get; set; }
+
         protected readonly bool ShowExceptionResult = (ConfigurationManager.AppSettings["ShowExceptionResult"] ?? "true").ToBool();
 
+
         [NonAction]
-        private ActionResult ExceptionResult(Exception e)
+        protected virtual ActionResult WhenError(Exception e)
         {
+            var (area, controller, action) = this.RouteData.GetA_C_A();
             e.AddLog(this.GetType());
-            //自定义错误
-            if (this.ErrorResult != null)
+
+            var custom_error = this.ErrorResult?.Invoke();
+            if (custom_error != null)
             {
-                return this.ErrorResult;
+                return custom_error;
             }
+
             //捕获的错误
             if (this.ShowExceptionResult)
             {
-                return GetJson(e.GetInnerExceptionAsList());
+                return GetJsonRes(e.GetInnerExceptionAsJson());
             }
-            //默认500页面
-            return Http500();
+
+            return GetJsonRes("服务器发生错误");
         }
+
+        /// <summary>
+        /// 没有登录的时候使用这个返回，可以重写
+        /// </summary>
+        /// <returns></returns>
+        [NonAction]
+        protected virtual ActionResult WhenNoLogin() =>
+            this.NoLoginResult?.Invoke() ??
+            this.GetJsonRes("没有登录", (-999).ToString());
+
+        /// <summary>
+        /// 没有权限的时候调用，可以重写
+        /// </summary>
+        /// <returns></returns>
+        [NonAction]
+        protected virtual ActionResult WhenNoPermission() =>
+            this.NoPermissionResult?.Invoke() ??
+            this.GetJsonRes("没有权限", (-(int)HttpStatusCode.Unauthorized).ToString());
 
         /// <summary>
         /// 获取action的时候捕获异常
@@ -198,7 +235,7 @@ namespace Lib.mvc
             }
             catch (Exception e)
             {
-                return ExceptionResult(e);
+                return WhenError(e);
             }
         }
 
@@ -216,7 +253,7 @@ namespace Lib.mvc
             }
             catch (Exception e)
             {
-                return ExceptionResult(e);
+                return WhenError(e);
             }
         }
 
@@ -232,10 +269,21 @@ namespace Lib.mvc
         {
             return RunAction(() =>
             {
-                var (loginuser, error) = TryGetLoginUser();
-                if (error != null)
+                var loginuser = this.X.context.GetAuthUser();
+                //判断是否登录
+                if (loginuser == null)
                 {
-                    return error;
+                    return WhenNoLogin();
+                }
+                //判断权限
+                if (ConvertHelper.NotNullList(this.PermissionList).Any(x => !loginuser.HasPermission(x)))
+                {
+                    return WhenNoPermission();
+                }
+                //判断scope
+                if (ConvertHelper.NotNullList(this.ScopeList).Any(x => !loginuser.HasScope(x)))
+                {
+                    return WhenNoPermission();
                 }
 
                 return GetActionFunc.Invoke(loginuser);
@@ -252,61 +300,26 @@ namespace Lib.mvc
         {
             return await RunActionAsync(async () =>
             {
-                var (loginuser, error) = TryGetLoginUser();
-                if (error != null)
+                var loginuser = await this.X.context.GetAuthUserAsync();
+                //判断是否登录
+                if (loginuser == null)
                 {
-                    return error;
+                    return WhenNoLogin();
+                }
+                //判断权限
+                if (ConvertHelper.NotNullList(this.PermissionList).Any(x => !loginuser.HasPermission(x)))
+                {
+                    return WhenNoPermission();
+                }
+                //判断scope
+                if (ConvertHelper.NotNullList(this.ScopeList).Any(x => !loginuser.HasScope(x)))
+                {
+                    return WhenNoPermission();
                 }
 
                 return await GetActionFunc.Invoke(loginuser);
             });
         }
-
-        [NonAction]
-        private (LoginUserInfo loginuser, ActionResult res) TryGetLoginUser()
-        {
-            LoginUserInfo loginuser = null;
-            //尝试通过token获取登陆用户
-            var token = this.Request.Headers["token"];
-            if (ValidateHelper.IsPlumpString(token))
-            {
-                loginuser = null;
-            }
-            //尝试使用session和cookie获取登陆用户
-            if (loginuser == null)
-            {
-                loginuser = this.X.User;
-            }
-            //==================================================================================================
-            //如果没登陆就跳转
-            if (loginuser == null)
-            {
-                if (NoLoginResult != null)
-                {
-                    return (loginuser, NoLoginResult);
-                }
-                else
-                {
-                    //没有登陆就跳转登陆
-                    var redirect_url = AppContext.GetObject<IGetLoginUrl>().GetUrl(this.X.Url);
-                    return (loginuser, new RedirectResult(redirect_url));
-                }
-            }
-            //所需要的全部权限值
-            if (ConvertHelper.NotNullList(PermissionList).Any(x => !loginuser.HasPermission(x)))
-            {
-                if (NoPermissionResult != null)
-                {
-                    return (loginuser, NoPermissionResult);
-                }
-                else
-                {
-                    return (loginuser, Http403());
-                }
-            }
-            return (loginuser, null);
-        }
-
         #endregion
 
     }

@@ -13,5 +13,7 @@ namespace Lib.ioc
     public interface IDependencyRegistrar
     {
         void Register(ref ContainerBuilder builder);
+
+        void Clean();
     }
 }

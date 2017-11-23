@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="Hiwjcn.Web.Service.AuthApiService" CodeBehind="AuthApiService.svc.cs" %>

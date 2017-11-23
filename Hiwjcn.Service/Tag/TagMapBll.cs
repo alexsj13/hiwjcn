@@ -22,11 +22,6 @@ namespace Hiwjcn.Bll.Tag
             //
         }
 
-        public override string CheckModel(TagMapModel model)
-        {
-            return base.CheckModel(model);
-        }
-
         /// <summary>
         /// 保存标签
         /// </summary>

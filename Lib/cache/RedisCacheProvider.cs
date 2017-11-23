@@ -6,6 +6,7 @@ using Lib.core;
 using Lib.helper;
 using Lib.data;
 using System.Configuration;
+using Lib.data.redis;
 
 namespace Lib.cache
 {
@@ -35,8 +36,12 @@ namespace Lib.cache
                 var rValue = _db.StringGet(key);
                 if (rValue.HasValue)
                 {
-                    cache.Result = Deserialize<T>(rValue);
-                    cache.Success = true;
+                    var res = this.Deserialize<CacheResult<T>>(rValue);
+                    if (res != null)
+                    {
+                        res.Success = true;
+                        cache = res;
+                    }
                 }
                 return true;
             }, CACHE_DB);
@@ -50,10 +55,10 @@ namespace Lib.cache
         {
             RedisManager.PrepareDataBase(_db =>
             {
-                var entryBytes = Serialize(data);
-                var expiresIn = expire;
+                var res = new CacheResult<object>() { Success = true, Result = data };
+                var entryBytes = this.Serialize(res);
 
-                _db.StringSet(key, entryBytes, expiresIn);
+                _db.StringSet(key, entryBytes, expire);
                 return true;
             }, CACHE_DB);
         }
@@ -136,6 +141,7 @@ namespace Lib.cache
         /// </summary>
         public virtual void Dispose()
         {
+            //do nothing
         }
 
         #endregion

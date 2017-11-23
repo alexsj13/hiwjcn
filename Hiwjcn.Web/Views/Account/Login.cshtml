@@ -41,11 +41,11 @@
                 <div class="panel-body">
                     <!--用户名-->
                     <div class="item">
-                        <input type="text" name="email" placeholder="邮件地址" class="form-control" />
+                        <input type="text" name="username" placeholder="邮件地址" class="form-control" />
                     </div>
                     <!--密码-->
                     <div class="item">
-                        <input type="password" name="pass" placeholder="密码" class="form-control" />
+                        <input type="password" name="password" placeholder="密码" class="form-control" />
                     </div>
                     <!--记住密码和登陆-->
                     <div class="item">
@@ -53,9 +53,9 @@
                     </div>
                 </div>
                 <div class="panel-footer">
-                    <span><a href="/account/register/" target="_self">注册账号</a></span>
+                    <span><a href="/account/register" target="_self">注册账号</a></span>
                     <span>|</span>
-                    <span><a href="/account/forgot/" target="_self">找回密码</a></span>
+                    <span><a href="/account/forgot" target="_self">找回密码</a></span>
                 </div>
             </div>
         </form>
@@ -68,17 +68,12 @@
 
                 var data = $(this).serializeArray();
 
-                postJson('/account/loginaction/', data, function (res) {
-                    if (res && res.success) {
+                postJson('/Account/LoginByPassword', data, function (res) {
+                    if (res && res.Success) {
                         window.location.reload();
                     }
                     else {
-                        if (res && res.msg) {
-                            alert(res.msg);
-                        }
-                        else {
-                            alert('登陆失败，原因未知');
-                        }
+                        alert(res.ErrorMsg);
                     }
                 });
 

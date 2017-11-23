@@ -32,7 +32,7 @@ namespace WebApp.Areas.Admin.Controllers
                 {
                     ViewData["list"] = data.DataList;
 
-                    ViewData["pager"] = data.GetPagerHtml("/admin/user/userlist/?", "page", page.Value, pageSize);
+                    ViewData["pager"] = data.GetPagerHtml(this, "page", page.Value, pageSize);
                 }
                 return View();
             });

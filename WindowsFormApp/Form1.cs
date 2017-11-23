@@ -93,25 +93,12 @@ namespace WindowsFormApp
                     {
                         var start = DateTime.Now;
                         var p = dict.ToDictionary(x => x.Key, x => x.Value);
-                        HttpClientHelper.SendHttpRequest(sp[0], p, null, null, RequestMethodEnum.POST, 20, (res) =>
+                        var json = HttpClientHelper.Post(sp[0], p);
+                        this.Invoke(new Action(() =>
                         {
-                            if (res.IsSuccessStatusCode)
-                            {
-                                var json = AsyncHelper.RunSync(() => res.Content.ReadAsStringAsync());
-                                this.Invoke(new Action(() =>
-                                {
-                                    Clipboard.SetDataObject(json);
-                                    this.textBox2.Text = $"{sp[0]}?{Com.DictToUrlParams(p)}======结果已复制，耗时：{(DateTime.Now - start).TotalMilliseconds}毫秒";
-                                }));
-                            }
-                            else
-                            {
-                                this.Invoke(new Action(() =>
-                                {
-                                    MessageBox.Show($"错误：{(int)res.StatusCode}");
-                                }));
-                            }
-                        });
+                            Clipboard.SetDataObject(json);
+                            this.textBox2.Text = $"{sp[0]}?{Com.DictToUrlParams(p)}======结果已复制，耗时：{(DateTime.Now - start).TotalMilliseconds}毫秒";
+                        }));
                     }
                     catch (Exception err)
                     {

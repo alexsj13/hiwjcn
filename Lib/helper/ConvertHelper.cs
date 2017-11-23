@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using Lib.io;
+using Lib.extension;
 
 namespace Lib.helper
 {
@@ -18,6 +19,35 @@ namespace Lib.helper
     public static class ConvertHelper
     {
         #region 字符串转换
+
+        /// <summary>
+        /// 删除首尾无意义的字符，比如空格和制表符等
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public static string TrimMeaninglessChars(string str)
+        {
+            str = GetString(str);
+            if (str.Length <= 0) { return str; }
+            var trim = new string[] { "\n", "\t", ' '.ToString() };
+            while (true)
+            {
+                var len = str.Length;
+                foreach (var t in trim)
+                {
+                    str = StringHelper.Trim(str, t, ignoreCase: true);
+                }
+
+                //break if trim end
+                var not_trimed = str.Length == len;
+                if (not_trimed)
+                {
+                    break;
+                }
+            }
+            return str;
+        }
+
         /// <summary>
         /// 获取非空字符串
         /// </summary>
@@ -28,35 +58,43 @@ namespace Lib.helper
         {
             return (obj == null) ? str : obj.ToString();
         }
+
+        /// <summary>
+        /// 如果不是有效字符串就变成null
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        public static string EmptyAsNull(string str)
+        {
+            if (!ValidateHelper.IsPlumpStringAfterTrim(str))
+            {
+                return null;
+            }
+            return str;
+        }
         #endregion
 
         #region base64
         /// <summary>
         /// 获取base64字符串
         /// </summary>
-        /// <param name="str"></param>
-        /// <param name="encoding"></param>
-        /// <returns></returns>
         public static string GetBase64String(string str, Encoding encoding = null)
         {
             if (encoding == null) { encoding = Encoding.Default; }
             return GetBase64String(encoding.GetBytes(str));
         }
+
         /// <summary>
         /// 获取base64字符串
         /// </summary>
-        /// <param name="bs"></param>
-        /// <returns></returns>
         public static string GetBase64String(byte[] bs)
         {
             return Convert.ToBase64String(bs);
         }
+
         /// <summary>
         /// base64字符串转为普通字符串
         /// </summary>
-        /// <param name="str"></param>
-        /// <param name="encoding"></param>
-        /// <returns></returns>
         public static string GetStringFromBase64String(string str, Encoding encoding = null)
         {
             var bs = GetBytesFromBase64String(str);
@@ -329,11 +367,10 @@ Console.WriteLine(Convert.ToBase64String(buffer)); //这是把字节数组当作
         /// <typeparam name="T"></typeparam>
         /// <param name="list"></param>
         /// <returns></returns>
-        public static List<T> NotNullList<T>(IList<T> list)
-        {
-            if (list == null) { return new List<T>(); }
-            return list.ToList();
-        }
+        public static List<T> NotNullList<T>(IEnumerable<T> list) => list?.ToList() ?? new List<T>() { };
+
+        [Obsolete]
+        public static List<T> NotNullEnumerable<T>(IEnumerable<T> list) => ConvertHelper.NotNullList(list);
         #endregion
 
         #region 通用转换

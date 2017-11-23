@@ -4,11 +4,31 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection;
 
 namespace Lib.extension
 {
     public static class CommonExtension
     {
+        /// <summary>
+        /// 获取过期的方法
+        /// </summary>
+        public static List<string> FindObsoleteFunctions(this Assembly ass)
+        {
+            var list = new List<string>();
+            foreach (var tp in ass.GetTypes())
+            {
+                foreach (var func in tp.GetMethods())
+                {
+                    if (func.GetCustomAttributes<ObsoleteAttribute>().Any())
+                    {
+                        list.Add($"{tp.FullName}.{func.Name},{ass.FullName}");
+                    }
+                }
+            }
+            return list.Distinct().OrderBy(x => x).ToList();
+        }
+
         /// <summary>
         /// 克隆一个对象
         /// </summary>
@@ -43,8 +63,35 @@ namespace Lib.extension
         {
             //The maxValue for the upper-bound in the Next() method is exclusive—
             //the range includes minValue, maxValue-1, and all numbers in between.
-            var index = ran.Next(minValue: 0, maxValue: list.Count());
+            var index = ran.RealNext(minValue: 0, maxValue: list.Count - 1);
             return (index, list[index]);
+        }
+
+        /// <summary>
+        /// 带边界的随机范围
+        /// </summary>
+        /// <param name="ran"></param>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public static int RealNext(this Random ran, int maxValue)
+        {
+            //The maxValue for the upper-bound in the Next() method is exclusive—
+            //the range includes minValue, maxValue-1, and all numbers in between.
+            return ran.RealNext(minValue: 0, maxValue: maxValue);
+        }
+
+        /// <summary>
+        /// 带边界的随机范围
+        /// </summary>
+        /// <param name="ran"></param>
+        /// <param name="minValue"></param>
+        /// <param name="maxValue"></param>
+        /// <returns></returns>
+        public static int RealNext(this Random ran, int minValue, int maxValue)
+        {
+            //The maxValue for the upper-bound in the Next() method is exclusive—
+            //the range includes minValue, maxValue-1, and all numbers in between.
+            return ran.Next(minValue: minValue, maxValue: maxValue + 1);
         }
 
         /// <summary>
@@ -101,6 +148,37 @@ namespace Lib.extension
                 data.Add(ran.PopChoice(ref list));
             }
             list.AddRange(data);
+        }
+
+        /// <summary>
+        /// 根据权重选择
+        /// </summary>
+        public static T ChoiceByWeight<T>(this Random ran, Dictionary<T, int> source)
+        {
+            if (source == null || source.Count <= 0) { throw new ArgumentException(nameof(source)); }
+            if (source.Count == 1) { return source.Keys.First(); }
+
+            if (source.Any(x => x.Value < 1)) { throw new ArgumentException("权重不能小于1"); }
+
+            var total_weight = source.Sum(x => x.Value);
+
+            var weight = ran.RealNext(total_weight - 1);
+
+            var len = 0;
+
+            foreach (var s in source)
+            {
+                var start = len;
+                var end = start + s.Value;
+                if (start <= weight && weight < end)
+                {
+                    return s.Key;
+                }
+
+                len = end;
+            }
+
+            throw new Exception("权重取值异常");
         }
     }
 }

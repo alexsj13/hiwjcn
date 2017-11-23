@@ -1,0 +1,58 @@
+﻿@{
+    Layout = "";
+}
+
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="center-block" style="width:300px;">
+                <form id="fm">
+                    <table class="table">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <input type="text" class="form-control" name="username" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <input type="password" class="form-control" name="password" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <button type="submit" class="btn btn-primary btn-block">登录</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </form>
+                <script type="text/javascript">
+
+                    var url = '@(ViewData["url"])';
+
+                    $(function () {
+                        $('#fm').submit(function () {
+                            var form = $(this);
+                            var data = form.serializeArray();
+                            postJson('/connect/loginbypassword', data, function (res) {
+                                if (res.Success) {
+                                    if (url.length > 0) {
+                                        window.location.href = url;
+                                    }
+                                    else {
+                                        window.location.href = '/';
+                                    }
+                                }
+                                else {
+                                    alert(res.ErrorMsg);
+                                }
+                            });
+                            return false;
+                        });
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+</div>

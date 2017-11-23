@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema xmlns:tns="http://tempuri.org/" elementFormDefault="qualified" targetNamespace="http://tempuri.org/" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:import schemaLocation="http://localhost:59840/Service/AuthApiService.svc?xsd=xsd2" namespace="http://schemas.datacontract.org/2004/07/Lib.mvc" />
+  <xs:element name="GetAccessToken">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="client_id" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="client_secret" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="code" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="grant_type" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetAccessTokenResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element xmlns:q1="http://schemas.datacontract.org/2004/07/Lib.mvc" minOccurs="0" name="GetAccessTokenResult" nillable="true" type="q1:_OfTokenModelM_PbxoawT" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetLoginUserInfoByToken">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="client_id" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="access_token" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetLoginUserInfoByTokenResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element xmlns:q2="http://schemas.datacontract.org/2004/07/Lib.mvc" minOccurs="0" name="GetLoginUserInfoByTokenResult" nillable="true" type="q2:_OfLoginUserInfoy8_PbvK0I" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetAuthCodeByOneTimeCode">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="client_id" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="scopeJson" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="phone" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="sms" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetAuthCodeByOneTimeCodeResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element xmlns:q3="http://schemas.datacontract.org/2004/07/Lib.mvc" minOccurs="0" name="GetAuthCodeByOneTimeCodeResult" nillable="true" type="q3:_Ofstring" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetAuthCodeByPassword">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" name="client_id" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="scopeJson" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="username" nillable="true" type="xs:string" />
+        <xs:element minOccurs="0" name="password" nillable="true" type="xs:string" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="GetAuthCodeByPasswordResponse">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element xmlns:q4="http://schemas.datacontract.org/2004/07/Lib.mvc" minOccurs="0" name="GetAuthCodeByPasswordResult" nillable="true" type="q4:_Ofstring" />
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

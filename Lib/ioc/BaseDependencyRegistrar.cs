@@ -12,6 +12,11 @@ namespace Lib.ioc
     /// </summary>
     public class BaseDependencyRegistrar : IDependencyRegistrar
     {
+        public void Clean()
+        {
+            //do nothing
+        }
+
         /// <summary>
         /// 注册依赖
         /// </summary>

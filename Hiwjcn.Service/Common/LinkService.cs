@@ -23,44 +23,14 @@ namespace Bll.Sys
             this._LinkDal = new LinkDal();
         }
 
-        public override string CheckModel(LinkModel model)
-        {
-            if (model == null) { return "对象为空"; }
-            if (!ValidateHelper.IsPlumpString(model.Name))
-            {
-                return "锚文本不能为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.Url))
-            {
-                return "链接地址不能为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.Target))
-            {
-                return "Target不能为空";
-            }
-            if (model.UserID <= 0)
-            {
-                return "用户不能为空";
-            }
-            if (!ValidateHelper.IsPlumpString(model.LinkType))
-            {
-                return "连接类型不能为空";
-            }
-            return string.Empty;
-        }
-
         /// <summary>
         /// 根据ID获取连接
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public LinkModel GetLinkByID(int id)
+        public LinkModel GetLinkByID(string id)
         {
-            string key = Com.GetCacheKey("linkbll.GetLinksByIDS", id.ToString());
-            return Cache(key, () =>
-            {
-                return _LinkDal.GetFirst(x => x.LinkID == id);
-            });
+            return _LinkDal.GetFirst(x => x.UID == id);
         }
 
         /// <summary>
@@ -75,15 +45,12 @@ namespace Bll.Sys
             {
                 return null;
             }
-            string key = GetCacheKey("linkbll.gettoplinks", link_type, count.ToString());
-            return Cache(key, () =>
-            {
-                var list = _LinkDal.QueryList(
-                    where: x => x.LinkType == link_type,
-                    orderby: x => x.OrderNum, Desc: true,
-                    start: 0, count: count);
-                return list;
-            });
+
+            var list = _LinkDal.QueryList(
+                where: x => x.LinkType == link_type,
+                orderby: x => x.OrderNum, Desc: true,
+                start: 0, count: count);
+            return list;
         }
 
         /// <summary>
@@ -91,9 +58,9 @@ namespace Bll.Sys
         /// </summary>
         /// <param name="id"></param>
         /// <returns></returns>
-        public string DeleteLink(int id)
+        public string DeleteLink(string id)
         {
-            var model = _LinkDal.GetFirst(x => x.LinkID == id);
+            var model = _LinkDal.GetFirst(x => x.UID == id);
             if (model == null) { return "记录不存在"; }
             return _LinkDal.Delete(model) > 0 ? SUCCESS : "删除失败";
         }
@@ -120,7 +87,7 @@ namespace Bll.Sys
         /// <returns></returns>
         public string UpdateLink(LinkModel updatemodel)
         {
-            var model = _LinkDal.GetByKeys(updatemodel.LinkID);
+            var model = _LinkDal.GetByKeys(updatemodel.IID);
             if (model == null) { return "链接不存在"; }
             model.Image = updatemodel.Image;
             model.Name = updatemodel.Name;

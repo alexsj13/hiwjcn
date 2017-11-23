@@ -29,6 +29,11 @@ namespace Hiwjcn.Bll
 
             try
             {
+                if (invocation.Method.ReturnType.IsGenericType_(typeof(Task<>)))
+                {
+                    throw new Exception("不支持异步方法拦截");
+                }
+
                 invocation.Proceed();
             }
             catch (Exception e)
